@@ -3,3 +3,4 @@ uvicorn
 redis
 jinja2
 python-multipart
+python-dotenv
