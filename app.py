@@ -24,18 +24,28 @@ async def home(request: Request):
 
 
 @app.post("/save")
-async def save(code: str = Form(...)):
+async def save(code: str = Form(...), custom_code: str = Form(None)):
     validate_code(code)
 
-    # Generate a unique ID — retry if collision
-    code_id = generate_id()
-    while redis_client.exists(code_id):
+    # If user provided custom code
+    if custom_code:
+        custom_code = custom_code.rstrip()
+
+        if len(custom_code) > 30:
+            raise HTTPException(400, "Custom code too long (max 30 chars)")
+
+        if redis_client.exists(custom_code):
+            raise HTTPException(400, "Custom code already taken")
+
+        code_id = custom_code
+
+    else:
+        # Generate random ID
         code_id = generate_id()
+        while redis_client.exists(code_id):
+            code_id = generate_id()
 
-    # Compress → Base64 encode
     encoded = compress_code(code)
-
-    # Redis is the only storage layer
     redis_client.set(code_id, encoded)
 
     return {"url": f"/{code_id}"}
