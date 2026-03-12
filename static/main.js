@@ -10,8 +10,9 @@ const lineNums  = document.getElementById("line-numbers");
 const lineInfo  = document.getElementById("lineInfo");
 const charInfo  = document.getElementById("charInfo");
 
-const shareBtn  = document.getElementById("shareBtn");
-const newBtn    = document.getElementById("newBtn");
+const shareBtn   = document.getElementById("shareBtn");
+const newBtn     = document.getElementById("newBtn");
+const downloadBtn = document.getElementById("downloadBtn");
 
 const shareBar  = document.getElementById("share-bar");
 const shareUrl  = document.getElementById("shareUrl");
@@ -22,18 +23,18 @@ const toast     = document.getElementById("toast");
 const viewBadge = document.getElementById("view-badge");
 
 /* Share modal elements */
-const shareModal      = document.getElementById("share-modal");
-const createShare     = document.getElementById("createShare");
-const cancelShare     = document.getElementById("cancelShare");
-const modalCloseBtn   = document.getElementById("modalCloseBtn");
-const customCode      = document.getElementById("customCode");
-const charCounter     = document.getElementById("charCounter");
-const urlInputWrap    = document.getElementById("urlInputWrap");
-const validationIcon  = document.getElementById("validationIcon");
-const urlHelper       = document.getElementById("urlHelper");
+const shareModal       = document.getElementById("share-modal");
+const createShare      = document.getElementById("createShare");
+const cancelShare      = document.getElementById("cancelShare");
+const modalCloseBtn    = document.getElementById("modalCloseBtn");
+const customCode       = document.getElementById("customCode");
+const charCounter      = document.getElementById("charCounter");
+const urlInputWrap     = document.getElementById("urlInputWrap");
+const validationIcon   = document.getElementById("validationIcon");
+const urlHelper        = document.getElementById("urlHelper");
 const customUrlSection = document.getElementById("customUrlSection");
-const optionRandom    = document.getElementById("optionRandom");
-const optionCustom    = document.getElementById("optionCustom");
+const optionRandom     = document.getElementById("optionRandom");
+const optionCustom     = document.getElementById("optionCustom");
 
 const MAX_LINES = 1000;
 
@@ -268,6 +269,39 @@ function setCreateBtnLoading(isLoading) {
   }
 }
 
+/* ── Page mode helpers ──────────────────────────────────────
+   All "on shared URL" state lives in enterViewMode().
+   All "on /" state lives in enterHomeMode().
+   No other code should touch viewBadge, downloadBtn, shareBar,
+   or editWarning directly for mode transitions.
+─────────────────────────────────────────────────────────── */
+
+function enterViewMode() {
+  viewBadge.classList.add("show");
+  downloadBtn.classList.add("show");
+}
+
+function enterHomeMode() {
+  /* URL */
+  history.pushState({}, "", "/");
+
+  /* Editor */
+  codeArea.value    = "";
+  codeArea.readOnly = false;
+
+  /* UI */
+  hideShareBar();
+  viewBadge.classList.remove("show");
+  downloadBtn.classList.remove("show");
+
+  /* Edit warning */
+  hideEditWarning();
+  editWarningDismissed = false;
+
+  updateLineNumbers();
+  codeArea.focus();
+}
+
 /* ── Share modal open ───────────────────────────────────── */
 
 shareBtn.addEventListener("click", () => {
@@ -366,7 +400,7 @@ createShare.addEventListener("click", async () => {
 
     closeModal();
 
-    /* Hide edit warning — they've created a new URL */
+    /* Hide edit warning — they've just created a new URL */
     hideEditWarning();
     editWarningDismissed = false;
 
@@ -389,31 +423,47 @@ copyBtn.addEventListener("click", () => {
 /* ── New snippet ────────────────────────────────────────── */
 
 newBtn.addEventListener("click", () => {
-
-  history.pushState({}, "", "/");
-
-  codeArea.value = "";
-  codeArea.readOnly = false;
-
-  hideShareBar();
-
-  viewBadge.classList.remove("show");
-
-  /* Reset edit warning for the new blank session */
-  hideEditWarning();
-  editWarningDismissed = false;
-
-  updateLineNumbers();
-
-  codeArea.focus();
+  enterHomeMode();
 });
 
-/* ── View mode ──────────────────────────────────────────── */
+/* ── Download snippet ───────────────────────────────────── */
 
-function enterViewMode() {
+downloadBtn.addEventListener("click", () => {
 
-  viewBadge.classList.add("show");
-}
+  const code = codeArea.value;
+
+  if (!code) return;
+
+  const blob = new Blob([code], { type: "text/plain" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+
+  /* Derive filename from the slug in the URL, fallback to 'code' */
+  const slug = window.location.pathname.replace(/^\//, "") || "code";
+
+  a.href     = url;
+  a.download = `${slug}.txt`;
+
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  URL.revokeObjectURL(url);
+});
+
+/* ── Unsaved changes warning on refresh / tab close ────────
+   Only fires when user is on '/' (fresh editor) with content.
+   Uses native beforeunload — browser renders its own dialog.
+─────────────────────────────────────────────────────────── */
+
+window.addEventListener("beforeunload", (e) => {
+
+  if (window.location.pathname === "/" && codeArea.value.trim().length > 0) {
+    e.preventDefault();
+    /* Required for legacy browser support */
+    e.returnValue = "";
+  }
+});
 
 /* ── Decode + decompress ───────────────────────────────── */
 

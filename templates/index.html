@@ -40,7 +40,8 @@
         --modal-surface: #0d1016;
       }
 
-      html, body {
+      html,
+      body {
         height: 100%;
         overflow: hidden;
         background: var(--bg);
@@ -51,7 +52,9 @@
       /* ── TOP BAR ───────────────────────────────────────── */
       #topbar {
         position: fixed;
-        top: 0; left: 0; right: 0;
+        top: 0;
+        left: 0;
+        right: 0;
         height: var(--bar-height);
         display: flex;
         align-items: center;
@@ -70,7 +73,10 @@
         color: var(--accent);
         user-select: none;
       }
-      .logo span { color: var(--subtle); font-weight: 600; }
+      .logo span {
+        color: var(--subtle);
+        font-weight: 600;
+      }
 
       .bar-center {
         display: flex;
@@ -80,12 +86,15 @@
         color: var(--subtle);
       }
       .bar-center .dot {
-        width: 5px; height: 5px;
+        width: 5px;
+        height: 5px;
         border-radius: 50%;
         background: var(--subtle);
         opacity: 0.4;
       }
-      #lineInfo { font-size: 11.5px; }
+      #lineInfo {
+        font-size: 11.5px;
+      }
 
       .bar-right {
         display: flex;
@@ -105,7 +114,11 @@
         font-weight: 500;
         cursor: pointer;
         border: 1px solid transparent;
-        transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+        transition:
+          background 0.15s,
+          border-color 0.15s,
+          color 0.15s,
+          opacity 0.15s;
         letter-spacing: 0.02em;
       }
       .btn-ghost {
@@ -113,17 +126,42 @@
         border-color: var(--border);
         color: var(--muted);
       }
-      .btn-ghost:hover { border-color: var(--muted); color: var(--text); }
-      .btn-accent { background: var(--accent); color: #050c08; font-weight: 600; }
-      .btn-accent:hover { background: #5aebaf; }
-      .btn-accent:active { background: #2cc885; }
-      .btn-accent:disabled { background: var(--accent-dim); color: #1a4034; cursor: not-allowed; }
+
+      #downloadBtn {
+        display: none
+      }
+      #downloadBtn.show {
+        display: inline-flex;
+      }
+
+      .btn-ghost:hover {
+        border-color: var(--muted);
+        color: var(--text);
+      }
+      .btn-accent {
+        background: var(--accent);
+        color: #050c08;
+        font-weight: 600;
+      }
+      .btn-accent:hover {
+        background: #5aebaf;
+      }
+      .btn-accent:active {
+        background: #2cc885;
+      }
+      .btn-accent:disabled {
+        background: var(--accent-dim);
+        color: #1a4034;
+        cursor: not-allowed;
+      }
 
       /* ── EDITOR ─────────────────────────────────────────── */
       #editor-wrap {
         position: fixed;
         top: var(--bar-height);
-        left: 0; right: 0; bottom: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
         display: flex;
       }
 
@@ -145,7 +183,9 @@
         color: var(--ln-text);
         transition: color 0.1s;
       }
-      #line-numbers span.active { color: var(--subtle); }
+      #line-numbers span.active {
+        color: var(--subtle);
+      }
 
       #codeArea {
         flex: 1;
@@ -165,10 +205,20 @@
         overflow-y: auto;
         caret-color: var(--accent);
       }
-      #codeArea::placeholder { color: #1e2328; }
-      #codeArea::-webkit-scrollbar { width: 7px; height: 7px; }
-      #codeArea::-webkit-scrollbar-track { background: transparent; }
-      #codeArea::-webkit-scrollbar-thumb { background: #1e2430; border-radius: 4px; }
+      #codeArea::placeholder {
+        color: #1e2328;
+      }
+      #codeArea::-webkit-scrollbar {
+        width: 7px;
+        height: 7px;
+      }
+      #codeArea::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      #codeArea::-webkit-scrollbar-thumb {
+        background: #1e2430;
+        border-radius: 4px;
+      }
 
       /* ── SHARE BAR ──────────────────────────────────────── */
       #share-bar {
@@ -185,10 +235,12 @@
         gap: 12px;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.25s, transform 0.25s;
+        transition:
+          opacity 0.25s,
+          transform 0.25s;
         z-index: 200;
         min-width: 360px;
-        box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
       }
       #share-bar.visible {
         opacity: 1;
@@ -213,12 +265,16 @@
         padding: 7px 10px;
         outline: none;
       }
-      #copyBtn { padding: 7px 14px; font-size: 12px; }
+      #copyBtn {
+        padding: 7px 14px;
+        font-size: 12px;
+      }
 
       /* ── TOAST ──────────────────────────────────────────── */
       #toast {
         position: fixed;
-        bottom: 28px; right: 28px;
+        bottom: 28px;
+        right: 28px;
         background: var(--accent);
         color: #050c08;
         font-size: 12px;
@@ -228,10 +284,15 @@
         opacity: 0;
         pointer-events: none;
         transform: translateY(8px);
-        transition: opacity 0.2s, transform 0.2s;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
         z-index: 300;
       }
-      #toast.show { opacity: 1; transform: translateY(0); }
+      #toast.show {
+        opacity: 1;
+        transform: translateY(0);
+      }
 
       /* ── ERROR BAR ──────────────────────────────────────── */
       #error-bar {
@@ -247,9 +308,11 @@
         font-size: 12.5px;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 0.25s, transform 0.25s;
+        transition:
+          opacity 0.25s,
+          transform 0.25s;
         z-index: 200;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       }
       #error-bar.visible {
         opacity: 1;
@@ -269,9 +332,12 @@
         padding: 5px 12px;
         border-radius: 20px;
       }
-      #view-badge.show { display: flex; }
+      #view-badge.show {
+        display: flex;
+      }
       #view-badge .vdot {
-        width: 6px; height: 6px;
+        width: 6px;
+        height: 6px;
         border-radius: 50%;
         background: var(--accent);
       }
@@ -288,11 +354,19 @@
         justify-content: center;
         z-index: 500;
       }
-      #share-modal.show { display: flex; }
+      #share-modal.show {
+        display: flex;
+      }
 
       @keyframes modalIn {
-        from { opacity: 0; transform: scale(0.96) translateY(12px); }
-        to   { opacity: 1; transform: scale(1)    translateY(0);    }
+        from {
+          opacity: 0;
+          transform: scale(0.96) translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1) translateY(0);
+        }
       }
 
       /* ── MODAL BOX ──────────────────────────────────────── */
@@ -310,10 +384,17 @@
 
       .modal-stripe {
         height: 3px;
-        background: linear-gradient(90deg, var(--accent) 0%, #1d7a56 60%, transparent 100%);
+        background: linear-gradient(
+          90deg,
+          var(--accent) 0%,
+          #1d7a56 60%,
+          transparent 100%
+        );
       }
 
-      .modal-inner { padding: 28px 30px 30px; }
+      .modal-inner {
+        padding: 28px 30px 30px;
+      }
 
       .modal-header {
         display: flex;
@@ -327,7 +408,8 @@
         gap: 12px;
       }
       .modal-icon {
-        width: 36px; height: 36px;
+        width: 36px;
+        height: 36px;
         background: rgba(63, 224, 160, 0.1);
         border: 1px solid rgba(63, 224, 160, 0.2);
         border-radius: 9px;
@@ -344,7 +426,8 @@
         color: var(--text);
       }
       .modal-close {
-        width: 30px; height: 30px;
+        width: 30px;
+        height: 30px;
         border-radius: 7px;
         border: 1px solid var(--border);
         background: transparent;
@@ -355,16 +438,23 @@
         align-items: center;
         justify-content: center;
         font-family: "JetBrains Mono", monospace;
-        transition: border-color 0.15s, color 0.15s, background 0.15s;
+        transition:
+          border-color 0.15s,
+          color 0.15s,
+          background 0.15s;
         line-height: 1;
       }
       .modal-close:hover {
         border-color: var(--muted);
         color: var(--text);
-        background: rgba(255,255,255,0.04);
+        background: rgba(255, 255, 255, 0.04);
       }
 
-      .modal-divider { height: 1px; background: var(--border); margin: 16px 0; }
+      .modal-divider {
+        height: 1px;
+        background: var(--border);
+        margin: 16px 0;
+      }
 
       .modal-subtitle {
         font-size: 13px;
@@ -390,7 +480,10 @@
         border: 1px solid var(--border);
         background: var(--modal-surface);
         cursor: pointer;
-        transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
+        transition:
+          border-color 0.18s,
+          background 0.18s,
+          box-shadow 0.18s;
         user-select: none;
       }
       .option-card:hover {
@@ -404,7 +497,8 @@
       }
 
       .option-radio {
-        width: 18px; height: 18px;
+        width: 18px;
+        height: 18px;
         border-radius: 50%;
         border: 2px solid var(--border);
         background: transparent;
@@ -414,19 +508,29 @@
         justify-content: center;
         transition: border-color 0.15s;
       }
-      .option-card.selected .option-radio { border-color: var(--accent); }
+      .option-card.selected .option-radio {
+        border-color: var(--accent);
+      }
 
       .option-radio-dot {
-        width: 8px; height: 8px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
         background: var(--accent);
         opacity: 0;
         transform: scale(0.3);
-        transition: opacity 0.15s, transform 0.15s;
+        transition:
+          opacity 0.15s,
+          transform 0.15s;
       }
-      .option-card.selected .option-radio-dot { opacity: 1; transform: scale(1); }
+      .option-card.selected .option-radio-dot {
+        opacity: 1;
+        transform: scale(1);
+      }
 
-      .option-text { flex: 1; }
+      .option-text {
+        flex: 1;
+      }
       .option-title {
         font-size: 13px;
         font-weight: 600;
@@ -453,7 +557,7 @@
         border: 1px solid rgba(63, 224, 160, 0.2);
       }
       .badge-muted {
-        background: rgba(255,255,255,0.04);
+        background: rgba(255, 255, 255, 0.04);
         color: var(--muted);
         border: 1px solid var(--border);
       }
@@ -463,7 +567,10 @@
         overflow: hidden;
         max-height: 0;
         opacity: 0;
-        transition: max-height 0.3s ease, opacity 0.25s ease, margin-bottom 0.3s ease;
+        transition:
+          max-height 0.3s ease,
+          opacity 0.25s ease,
+          margin-bottom 0.3s ease;
         margin-bottom: 0;
       }
       #customUrlSection.open {
@@ -489,8 +596,12 @@
         color: var(--subtle);
         transition: color 0.15s;
       }
-      #charCounter.warn { color: #d4a847; }
-      #charCounter.over { color: var(--error); }
+      #charCounter.warn {
+        color: #d4a847;
+      }
+      #charCounter.over {
+        color: var(--error);
+      }
 
       .url-input-wrap {
         display: flex;
@@ -499,12 +610,23 @@
         border: 1px solid var(--border);
         border-radius: 8px;
         overflow: hidden;
-        transition: border-color 0.18s, box-shadow 0.18s;
+        transition:
+          border-color 0.18s,
+          box-shadow 0.18s;
         margin-bottom: 8px;
       }
-      .url-input-wrap:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-      .url-input-wrap.valid        { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-      .url-input-wrap.invalid      { border-color: var(--error);  box-shadow: 0 0 0 3px var(--error-glow);  }
+      .url-input-wrap:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+      .url-input-wrap.valid {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px var(--accent-glow);
+      }
+      .url-input-wrap.invalid {
+        border-color: var(--error);
+        box-shadow: 0 0 0 3px var(--error-glow);
+      }
 
       .url-prefix {
         background: #0a0c11;
@@ -530,7 +652,9 @@
         padding: 11px 10px;
         min-width: 0;
       }
-      #customCode::placeholder { color: #2a3040; }
+      #customCode::placeholder {
+        color: #2a3040;
+      }
 
       .url-validation-icon {
         display: flex;
@@ -541,9 +665,15 @@
         transition: opacity 0.15s;
         flex-shrink: 0;
       }
-      .url-validation-icon.show { opacity: 1; }
-      .url-validation-icon.ok   { color: var(--accent); }
-      .url-validation-icon.err  { color: var(--error);  }
+      .url-validation-icon.show {
+        opacity: 1;
+      }
+      .url-validation-icon.ok {
+        color: var(--accent);
+      }
+      .url-validation-icon.err {
+        color: var(--error);
+      }
 
       .url-helper {
         font-size: 11.5px;
@@ -551,11 +681,18 @@
         min-height: 17px;
         transition: color 0.15s;
       }
-      .url-helper.error-msg { color: var(--error); }
-      .url-helper.ok-msg    { color: var(--accent); }
+      .url-helper.error-msg {
+        color: var(--error);
+      }
+      .url-helper.ok-msg {
+        color: var(--accent);
+      }
 
       /* ── ACTION BUTTONS ─────────────────────────────────── */
-      .modal-actions { display: flex; gap: 10px; }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+      }
       .modal-actions .btn {
         flex: 1;
         padding: 12px 16px;
@@ -563,9 +700,14 @@
         border-radius: 9px;
       }
 
-      @keyframes spin { to { transform: rotate(360deg); } }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
       .btn-spinner {
-        width: 13px; height: 13px;
+        width: 13px;
+        height: 13px;
         border: 2px solid rgba(26, 64, 52, 0.5);
         border-top-color: #1a4034;
         border-radius: 50%;
@@ -575,8 +717,14 @@
 
       /* ── EDIT WARNING POPUP ─────────────────────────────── */
       @keyframes popupIn {
-        from { opacity: 0; transform: translateX(12px); }
-        to   { opacity: 1; transform: translateX(0);    }
+        from {
+          opacity: 0;
+          transform: translateX(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
       }
 
       #edit-warning {
@@ -592,9 +740,11 @@
         opacity: 0;
         pointer-events: none;
         transform: translateX(12px);
-        transition: opacity 0.2s, transform 0.2s;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
         z-index: 150;
-        box-shadow: 0 6px 24px rgba(0,0,0,0.45);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
       }
       #edit-warning.show {
         opacity: 1;
@@ -627,7 +777,9 @@
         cursor: pointer;
         display: inline-block;
         border-bottom: 1px solid transparent;
-        transition: color 0.15s, border-color 0.15s;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
       }
       #edit-warning .ew-dismiss:hover {
         color: var(--muted);
@@ -652,6 +804,7 @@
         <div id="view-badge"><span class="vdot"></span>viewing</div>
         <button class="btn btn-ghost" id="newBtn">new</button>
         <button class="btn btn-accent" id="shareBtn">share →</button>
+        <button class="btn btn-ghost" id="downloadBtn">download ↓</button>
       </div>
     </header>
 
@@ -680,36 +833,51 @@
       <div class="modal-box">
         <div class="modal-stripe"></div>
         <div class="modal-inner">
-
           <!-- Header -->
           <div class="modal-header">
             <div class="modal-title-group">
               <div class="modal-icon">🔗</div>
               <span class="modal-title">Share your code</span>
             </div>
-            <button class="modal-close" id="modalCloseBtn" aria-label="Close">×</button>
+            <button class="modal-close" id="modalCloseBtn" aria-label="Close">
+              ×
+            </button>
           </div>
 
           <div class="modal-divider"></div>
 
-          <p class="modal-subtitle">Anyone with the link can view this snippet. Choose how you'd like your URL to look.</p>
+          <p class="modal-subtitle">
+            Anyone with the link can view this snippet. Choose how you'd like
+            your URL to look.
+          </p>
 
           <!-- Option cards -->
           <div class="option-cards">
             <div class="option-card selected" id="optionRandom">
-              <div class="option-radio"><div class="option-radio-dot"></div></div>
+              <div class="option-radio">
+                <div class="option-radio-dot"></div>
+              </div>
               <div class="option-text">
                 <div class="option-title">Continue with random URL</div>
-                <div class="option-desc">We'll generate a short, unique link automatically.</div>
+                <div class="option-desc">
+                  We'll generate a short, unique link automatically.
+                </div>
               </div>
               <span class="option-badge badge-green">Quick</span>
             </div>
 
             <div class="option-card" id="optionCustom">
-              <div class="option-radio"><div class="option-radio-dot"></div></div>
+              <div class="option-radio">
+                <div class="option-radio-dot"></div>
+              </div>
               <div class="option-text">
                 <div class="option-title">Use a custom URL</div>
-                <div class="option-desc">Pick your own slug — e.g. <span style="color:var(--accent)">codealive.onrender.com/my-snippet</span></div>
+                <div class="option-desc">
+                  Pick your own slug — e.g.
+                  <span style="color: var(--accent)"
+                    >codealive.onrender.com/my-snippet</span
+                  >
+                </div>
               </div>
               <span class="option-badge badge-muted">Custom</span>
             </div>
@@ -733,15 +901,18 @@
               />
               <span class="url-validation-icon" id="validationIcon"></span>
             </div>
-            <p class="url-helper" id="urlHelper">Letters, numbers and hyphens only</p>
+            <p class="url-helper" id="urlHelper">
+              Letters, numbers and hyphens only
+            </p>
           </div>
 
           <!-- Actions -->
           <div class="modal-actions">
             <button id="cancelShare" class="btn btn-ghost">cancel</button>
-            <button id="createShare" class="btn btn-accent">create link →</button>
+            <button id="createShare" class="btn btn-accent">
+              create link →
+            </button>
           </div>
-
         </div>
       </div>
     </div>
@@ -750,7 +921,8 @@
     <div id="edit-warning">
       <div class="ew-title">⚠ Unsaved changes</div>
       <div class="ew-body">
-        You're editing a shared snippet. Click <strong>share →</strong> to generate a new URL before leaving.
+        You're editing a shared snippet. Click <strong>share →</strong> to
+        generate a new URL before leaving.
       </div>
       <span class="ew-dismiss" id="ewDismiss">Got it, dismiss</span>
     </div>
