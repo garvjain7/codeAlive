@@ -22,20 +22,55 @@ const toast     = document.getElementById("toast");
 const viewBadge = document.getElementById("view-badge");
 
 /* Share modal elements */
-const shareModal  = document.getElementById("share-modal");
-const createShare = document.getElementById("createShare");
-const cancelShare = document.getElementById("cancelShare");
-const customCode  = document.getElementById("customCode");
+const shareModal      = document.getElementById("share-modal");
+const createShare     = document.getElementById("createShare");
+const cancelShare     = document.getElementById("cancelShare");
+const modalCloseBtn   = document.getElementById("modalCloseBtn");
+const customCode      = document.getElementById("customCode");
+const charCounter     = document.getElementById("charCounter");
+const urlInputWrap    = document.getElementById("urlInputWrap");
+const validationIcon  = document.getElementById("validationIcon");
+const urlHelper       = document.getElementById("urlHelper");
+const customUrlSection = document.getElementById("customUrlSection");
+const optionRandom    = document.getElementById("optionRandom");
+const optionCustom    = document.getElementById("optionCustom");
 
 const MAX_LINES = 1000;
+
+const editWarning = document.getElementById("edit-warning");
+const ewDismiss   = document.getElementById("ewDismiss");
+
+/* Track whether the warning has been dismissed this session */
+let editWarningDismissed = false;
+
+function showEditWarning() {
+  if (editWarningDismissed) return;
+  editWarning.classList.add("show");
+}
+
+function hideEditWarning() {
+  editWarning.classList.remove("show");
+}
+
+ewDismiss.addEventListener("click", () => {
+  editWarningDismissed = true;
+  hideEditWarning();
+});
+
+/* Show warning when user edits while on a shared URL (not '/') */
+codeArea.addEventListener("input", () => {
+  if (window.location.pathname !== "/") {
+    showEditWarning();
+  }
+});
 
 /* ── Line numbers ───────────────────────────────────────── */
 
 function updateLineNumbers() {
 
-  const lines     = codeArea.value.split("\n");
-  const count     = lines.length;
-  const cursorPos = codeArea.selectionStart;
+  const lines      = codeArea.value.split("\n");
+  const count      = lines.length;
+  const cursorPos  = codeArea.selectionStart;
   const activeLine = codeArea.value.substring(0, cursorPos).split("\n").length;
 
   lineInfo.textContent = `${count} line${count !== 1 ? "s" : ""}`;
@@ -48,9 +83,9 @@ function updateLineNumbers() {
   lineNums.scrollTop = codeArea.scrollTop;
 }
 
-codeArea.addEventListener("input", updateLineNumbers);
-codeArea.addEventListener("keyup", updateLineNumbers);
-codeArea.addEventListener("click", updateLineNumbers);
+codeArea.addEventListener("input",  updateLineNumbers);
+codeArea.addEventListener("keyup",  updateLineNumbers);
+codeArea.addEventListener("click",  updateLineNumbers);
 
 codeArea.addEventListener("scroll", () => {
   lineNums.scrollTop = codeArea.scrollTop;
@@ -116,6 +151,123 @@ function hideShareBar() {
   shareBar.classList.remove("visible");
 }
 
+/* ── Option card selection ───────────────────────────────── */
+
+/* Track which option is currently selected */
+let selectedOption = "random"; // "random" | "custom"
+
+function selectOption(option) {
+
+  selectedOption = option;
+
+  if (option === "random") {
+    optionRandom.classList.add("selected");
+    optionCustom.classList.remove("selected");
+    customUrlSection.classList.remove("open");
+  } else {
+    optionCustom.classList.add("selected");
+    optionRandom.classList.remove("selected");
+    customUrlSection.classList.add("open");
+    /* Focus the input after the slide-down animation */
+    setTimeout(() => customCode.focus(), 80);
+  }
+}
+
+optionRandom.addEventListener("click", () => selectOption("random"));
+optionCustom.addEventListener("click", () => selectOption("custom"));
+
+/* ── Modal helpers ───────────────────────────────────────── */
+
+function openModal() {
+
+  shareModal.classList.add("show");
+  resetModalUI();
+}
+
+function closeModal() {
+
+  shareModal.classList.remove("show");
+}
+
+function resetModalUI() {
+
+  /* Reset option to random */
+  selectOption("random");
+
+  /* Reset custom input */
+  customCode.value = "";
+  charCounter.textContent = "0/30";
+  charCounter.classList.remove("warn", "over");
+
+  urlInputWrap.classList.remove("valid", "invalid");
+  validationIcon.textContent = "";
+  validationIcon.classList.remove("show", "ok", "err");
+
+  urlHelper.textContent = "Letters, numbers and hyphens only";
+  urlHelper.classList.remove("error-msg", "ok-msg");
+
+  setCreateBtnLoading(false);
+}
+
+/* ── Custom URL live validation ──────────────────────────── */
+
+const VALID_SLUG = /^[a-zA-Z0-9-]+$/;
+
+function validateCustomInput(value) {
+
+  const len = value.length;
+
+  charCounter.textContent = `${len}/30`;
+  charCounter.classList.toggle("warn", len >= 22 && len < 28);
+  charCounter.classList.toggle("over", len >= 28);
+
+  if (len === 0) {
+    urlInputWrap.classList.remove("valid", "invalid");
+    validationIcon.classList.remove("show", "ok", "err");
+    validationIcon.textContent = "";
+    urlHelper.textContent = "Letters, numbers and hyphens only";
+    urlHelper.classList.remove("error-msg", "ok-msg");
+    return;
+  }
+
+  const ok = VALID_SLUG.test(value) && !value.endsWith(" ");
+
+  urlInputWrap.classList.toggle("valid",   ok);
+  urlInputWrap.classList.toggle("invalid", !ok);
+
+  validationIcon.textContent = ok ? "✓" : "✗";
+  validationIcon.classList.toggle("ok",  ok);
+  validationIcon.classList.toggle("err", !ok);
+  validationIcon.classList.add("show");
+
+  if (!ok) {
+    urlHelper.textContent = "Only letters, numbers and hyphens allowed";
+    urlHelper.classList.add("error-msg");
+    urlHelper.classList.remove("ok-msg");
+  } else {
+    urlHelper.textContent = "Looks good!";
+    urlHelper.classList.add("ok-msg");
+    urlHelper.classList.remove("error-msg");
+  }
+}
+
+customCode.addEventListener("input", () => {
+  validateCustomInput(customCode.value);
+});
+
+/* ── Loading state for create button ─────────────────────── */
+
+function setCreateBtnLoading(isLoading) {
+
+  if (isLoading) {
+    createShare.disabled = true;
+    createShare.innerHTML = `<span class="btn-spinner"></span>creating...`;
+  } else {
+    createShare.disabled = false;
+    createShare.innerHTML = "create link →";
+  }
+}
+
 /* ── Share modal open ───────────────────────────────────── */
 
 shareBtn.addEventListener("click", () => {
@@ -127,17 +279,25 @@ shareBtn.addEventListener("click", () => {
     return;
   }
 
-  shareModal.classList.add("show");
-
-  customCode.value = "";
-  customCode.focus();
+  openModal();
 });
 
+/* Close modal — × button */
+modalCloseBtn.addEventListener("click", closeModal);
+
 /* Cancel modal */
+cancelShare.addEventListener("click", closeModal);
 
-cancelShare.addEventListener("click", () => {
+/* Close on backdrop click */
+shareModal.addEventListener("click", (e) => {
+  if (e.target === shareModal) closeModal();
+});
 
-  shareModal.classList.remove("show");
+/* Close on Escape key */
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && shareModal.classList.contains("show")) {
+    closeModal();
+  }
 });
 
 /* ── Create Share Link ───────────────────────────────────── */
@@ -158,7 +318,8 @@ createShare.addEventListener("click", async () => {
     return;
   }
 
-  let custom = customCode.value;
+  /* Only use custom value if the custom option is selected */
+  let custom = selectedOption === "custom" ? customCode.value : "";
 
   if (custom.endsWith(" ")) {
     showError("Custom code cannot end with space.");
@@ -178,6 +339,8 @@ createShare.addEventListener("click", async () => {
     formData.append("custom_code", custom.trim());
   }
 
+  setCreateBtnLoading(true);
+
   try {
 
     const response = await fetch("/save", {
@@ -188,6 +351,7 @@ createShare.addEventListener("click", async () => {
     const data = await response.json();
 
     if (!response.ok) {
+      setCreateBtnLoading(false);
       showError(data.detail || "Failed to save.");
       return;
     }
@@ -200,10 +364,15 @@ createShare.addEventListener("click", async () => {
 
     enterViewMode();
 
-    shareModal.classList.remove("show");
+    closeModal();
+
+    /* Hide edit warning — they've created a new URL */
+    hideEditWarning();
+    editWarningDismissed = false;
 
   } catch (err) {
 
+    setCreateBtnLoading(false);
     showError("Network error. Please try again.");
   }
 });
@@ -213,7 +382,6 @@ createShare.addEventListener("click", async () => {
 copyBtn.addEventListener("click", () => {
 
   navigator.clipboard.writeText(shareUrl.value).then(() => {
-
     showToast();
   });
 });
@@ -231,6 +399,10 @@ newBtn.addEventListener("click", () => {
 
   viewBadge.classList.remove("show");
 
+  /* Reset edit warning for the new blank session */
+  hideEditWarning();
+  editWarningDismissed = false;
+
   updateLineNumbers();
 
   codeArea.focus();
@@ -247,7 +419,7 @@ function enterViewMode() {
 
 async function decodeAndDecompress(encoded) {
 
-  const std = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const std    = encoded.replace(/-/g, "+").replace(/_/g, "/");
   const padded = std + "=".repeat((4 - (std.length % 4)) % 4);
 
   const binary = atob(padded);
@@ -261,12 +433,10 @@ async function decodeAndDecompress(encoded) {
   const ds = new DecompressionStream("gzip");
 
   const writer = ds.writable.getWriter();
-
   writer.write(bytes);
   writer.close();
 
   const reader = ds.readable.getReader();
-
   const chunks = [];
 
   while (true) {
@@ -278,16 +448,13 @@ async function decodeAndDecompress(encoded) {
     chunks.push(value);
   }
 
-  const total = chunks.reduce((sum, c) => sum + c.length, 0);
-
+  const total  = chunks.reduce((sum, c) => sum + c.length, 0);
   const result = new Uint8Array(total);
 
   let offset = 0;
 
   for (const chunk of chunks) {
-
     result.set(chunk, offset);
-
     offset += chunk.length;
   }
 
@@ -302,8 +469,7 @@ async function loadEncodedSnippet(encoded) {
 
     const code = await decodeAndDecompress(encoded);
 
-    codeArea.value = code;
-
+    codeArea.value    = code;
     codeArea.readOnly = false;
 
     updateLineNumbers();
@@ -315,7 +481,6 @@ async function loadEncodedSnippet(encoded) {
   } catch (err) {
 
     showError("Failed to decode snippet.");
-
     console.error(err);
   }
 }
