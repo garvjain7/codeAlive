@@ -785,6 +785,132 @@
         color: var(--muted);
         border-color: var(--subtle);
       }
+      /* ── WELCOME OVERLAY ────────────────────────────────── */
+      #welcome-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        pointer-events: none;
+        animation: welcomeFadeIn 0.6s ease forwards;
+      }
+      #welcome-overlay.hidden {
+        animation: welcomeFadeOut 0.3s ease forwards;
+      }
+
+      @keyframes welcomeFadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes welcomeFadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to   { opacity: 0; transform: translateY(-6px); }
+      }
+
+      .welcome-card {
+        pointer-events: all;
+        position: relative;
+        max-width: 480px;
+        width: 90%;
+        background: rgba(10, 12, 15, 0.82);
+        border: 1px solid #1e2530;
+        border-top: 1px solid #2a3340;
+        border-radius: 14px;
+        padding: 36px 40px 32px;
+        backdrop-filter: blur(12px);
+        box-shadow:
+          0 0 0 1px rgba(63, 224, 160, 0.04),
+          0 24px 60px rgba(0, 0, 0, 0.7),
+          0 0 80px rgba(63, 224, 160, 0.03);
+        text-align: center;
+      }
+
+      .welcome-close {
+        position: absolute;
+        top: 13px;
+        right: 15px;
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--subtle);
+        font-size: 16px;
+        line-height: 1;
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s, background 0.15s;
+        font-family: monospace;
+      }
+      .welcome-close:hover {
+        color: var(--text);
+        border-color: var(--border-hover);
+        background: #1a1e26;
+      }
+
+      .welcome-tagline {
+        font-family: "Syne", sans-serif;
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        line-height: 1.2;
+        margin-bottom: 20px;
+        /* gradient from accent green to a softer teal-white */
+        background: linear-gradient(110deg, #3fe0a0 0%, #7ef5c8 45%, #b8fff0 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        filter: drop-shadow(0 0 18px rgba(63, 224, 160, 0.25));
+      }
+
+      .welcome-tagline .arrow {
+        /* opacity: 0.55; */
+        font-weight: bolder;
+      }
+
+      .welcome-divider {
+        width: 40px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--accent-dim), transparent);
+        margin: 0 auto 18px;
+      }
+
+      .welcome-desc {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12.5px;
+        color: var(--muted);
+        line-height: 1.75;
+        letter-spacing: 0.01em;
+      }
+
+      .welcome-desc strong {
+        color: #8ecfb8;
+        font-weight: 500;
+      }
+
+      .welcome-hint {
+        margin-top: 22px;
+        font-size: 11px;
+        color: var(--subtle);
+        letter-spacing: 0.05em;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+      .welcome-hint::before,
+      .welcome-hint::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+        max-width: 48px;
+      }
     </style>
   </head>
   <body>
@@ -811,6 +937,26 @@
     <!-- EDITOR -->
     <div id="editor-wrap">
       <div id="line-numbers"></div>
+
+      <!-- WELCOME OVERLAY -->
+      <div id="welcome-overlay">
+        <div class="welcome-card">
+          <button class="welcome-close" id="welcomeClose" aria-label="Close">×</button>
+          <div class="welcome-tagline">
+            <div class="welcome-tagline">
+            Write <span class="arrow">→</span> Share <span class="arrow">→</span> Access <span class="arrow"></span> Repeat
+          </div>
+          </div>
+          <div class="welcome-divider"></div>
+          <p class="welcome-desc">
+            Paste any code snippet into the editor,<br>
+            hit <strong>share →</strong> to get an instant link —<br>
+            <strong>no login, no setup, no friction.</strong>
+          </p>
+          <div class="welcome-hint">click anywhere to start</div>
+        </div>
+      </div>
+
       <textarea
         id="codeArea"
         spellcheck="false"
@@ -934,5 +1080,32 @@
     <div id="toast">Copied!</div>
 
     <script src="/static/main.js"></script>
+
+    <!-- WELCOME OVERLAY LOGIC -->
+    <script>
+      (function () {
+        var overlay = document.getElementById('welcome-overlay');
+        var closeBtn = document.getElementById('welcomeClose');
+        var textarea = document.getElementById('codeArea');
+
+        function dismissOverlay() {
+          if (!overlay || overlay.classList.contains('hidden')) return;
+          overlay.classList.add('hidden');
+          // Remove from DOM after animation ends
+          overlay.addEventListener('animationend', function () {
+            overlay.style.display = 'none';
+          }, { once: true });
+        }
+
+        if (closeBtn) closeBtn.addEventListener('click', dismissOverlay);
+        if (textarea) textarea.addEventListener('focus', dismissOverlay);
+        if (textarea) textarea.addEventListener('click', dismissOverlay);
+
+        // Also hide if there's already content (e.g. viewing a shared snippet)
+        if (textarea && textarea.value.trim().length > 0) {
+          overlay.style.display = 'none';
+        }
+      })();
+    </script>
   </body>
 </html>
