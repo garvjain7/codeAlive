@@ -4,3 +4,4 @@ redis
 jinja2
 python-multipart
 python-dotenv
+codelang_detect

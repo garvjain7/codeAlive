@@ -10,15 +10,24 @@
       rel="stylesheet"
     />
 
+    <!-- Prism.js — Tomorrow Night theme (dark, matches editor palette) -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
+      crossorigin="anonymous"
+    />
+
     <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQXHZCDKRS"></script>
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=G-SQXHZCDKRS"
+    ></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag() {
         dataLayer.push(arguments);
       }
       gtag("js", new Date());
-
       gtag("config", "G-SQXHZCDKRS");
     </script>
 
@@ -103,11 +112,55 @@
         border-radius: 50%;
         background: var(--subtle);
         opacity: 0.4;
+        flex-shrink: 0;
       }
       #lineInfo {
         font-size: 11.5px;
       }
 
+      /* ── Language badge (topbar) ────────────────────────── */
+      #langDot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--accent);
+        opacity: 0.7;
+        flex-shrink: 0;
+      }
+
+      .lang-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 9px;
+        border-radius: 20px;
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: lowercase;
+        background: rgba(63, 224, 160, 0.08);
+        color: var(--accent);
+        border: 1px solid rgba(63, 224, 160, 0.18);
+        white-space: nowrap;
+      }
+
+      .lang-badge.detecting {
+        color: var(--muted);
+        background: rgba(255, 255, 255, 0.03);
+        border-color: var(--border);
+        animation: badgePulse 1.6s ease-in-out infinite;
+      }
+
+      @keyframes badgePulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.45;
+        }
+      }
+
+      /* ── BUTTONS ─────────────────────────────────────────── */
       .bar-right {
         display: flex;
         align-items: center;
@@ -150,6 +203,14 @@
         border-color: var(--muted);
         color: var(--text);
       }
+      #copyCodeBtn {
+        gap: 5px;
+      }
+      #copyCodeBtn::before {
+        content: "⧉";
+        font-size: 13px;
+        opacity: 0.7;
+      }
       .btn-accent {
         background: var(--accent);
         color: #050c08;
@@ -167,7 +228,7 @@
         cursor: not-allowed;
       }
 
-      /* ── EDITOR ─────────────────────────────────────────── */
+      /* ── EDITOR LAYOUT ──────────────────────────────────── */
       #editor-wrap {
         position: fixed;
         top: var(--bar-height);
@@ -177,6 +238,7 @@
         display: flex;
       }
 
+      /* ── Line numbers ───────────────────────────────────── */
       #line-numbers {
         width: var(--ln-width);
         overflow: hidden;
@@ -199,10 +261,53 @@
         color: var(--subtle);
       }
 
-      #codeArea {
+      /* ── Mirror container ───────────────────────────────── */
+      /*
+         #code-editor-container holds two stacked layers:
+           z-index 1 → #code-highlight  (Prism-highlighted pre/code, pointer-events:none)
+           z-index 2 → #codeArea        (transparent textarea, captures all input)
+      */
+      #code-editor-container {
+        position: relative;
         flex: 1;
+        overflow: hidden;
+      }
+
+      /* ── Prism highlight layer ──────────────────────────── */
+      #code-highlight {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        margin: 0;
+        padding: 18px 20px 40px 18px; /* must match #codeArea exactly */
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13.5px;
+        line-height: 22px;
+        white-space: pre;
+        overflow-wrap: normal;
+        overflow-x: auto;
+        overflow-y: auto;
+        pointer-events: none;
+        tab-size: 2;
         background: var(--editor-bg);
-        color: var(--text);
+        border: none;
+        outline: none;
+        /* Hide scrollbars — scrolled via JS in sync with textarea */
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+      }
+      #code-highlight::-webkit-scrollbar {
+        display: none;
+      }
+
+      /* ── Textarea (transparent, on top) ─────────────────── */
+      #codeArea {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        background: transparent;
+        color: transparent; /* text rendered by #code-highlight below */
+        caret-color: var(--accent); /* cursor still visible */
         font-family: "JetBrains Mono", monospace;
         font-size: 13.5px;
         line-height: 22px;
@@ -215,10 +320,11 @@
         overflow-wrap: normal;
         overflow-x: auto;
         overflow-y: auto;
-        caret-color: var(--accent);
+        /* Selection highlight still renders because the browser draws it
+           below the text layer — fully visible even with transparent text */
       }
       #codeArea::placeholder {
-        color: #1e2328;
+        color: transparent; /* placeholder shown via welcome overlay instead */
       }
       #codeArea::-webkit-scrollbar {
         width: 7px;
@@ -230,6 +336,89 @@
       #codeArea::-webkit-scrollbar-thumb {
         background: #1e2430;
         border-radius: 4px;
+      }
+
+      /* ── Prism token colours — tuned for CodeAlive's dark palette ── */
+      code[class*="language-"],
+      pre[class*="language-"] {
+        background: transparent !important;
+        text-shadow: none !important;
+        font-family: "JetBrains Mono", monospace !important;
+        font-size: 13.5px !important;
+        line-height: 22px !important;
+        tab-size: 2 !important;
+        border-radius: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .token.comment,
+      .token.prolog,
+      .token.doctype,
+      .token.cdata {
+        color: #3d4858;
+        font-style: italic;
+      }
+
+      .token.keyword,
+      .token.rule,
+      .token.at-rule,
+      .token.important {
+        color: #7b9fff;
+      }
+
+      .token.string,
+      .token.char,
+      .token.attr-value,
+      .token.template-string {
+        color: #a0d9a8;
+      }
+
+      .token.function,
+      .token.function-name {
+        color: var(--accent); /* CodeAlive green */
+      }
+
+      .token.number,
+      .token.boolean,
+      .token.constant,
+      .token.symbol {
+        color: #f5a97f;
+      }
+
+      .token.operator,
+      .token.entity {
+        color: #66768f;
+      }
+
+      .token.punctuation {
+        color: #4a5568;
+      }
+
+      .token.class-name,
+      .token.builtin,
+      .token.inserted {
+        color: #e8c96e;
+      }
+
+      .token.tag,
+      .token.selector,
+      .token.property,
+      .token.attr-name {
+        color: #7b9fff;
+      }
+
+      .token.deleted,
+      .token.regex {
+        color: #f08080;
+      }
+
+      .token.variable {
+        color: #d4d8e0;
+      }
+
+      .token.namespace {
+        color: #9ba8b8;
       }
 
       /* ── SHARE BAR ──────────────────────────────────────── */
@@ -797,6 +986,7 @@
         color: var(--muted);
         border-color: var(--subtle);
       }
+
       /* ── WELCOME OVERLAY ────────────────────────────────── */
       #welcome-overlay {
         position: absolute;
@@ -887,7 +1077,6 @@
         letter-spacing: 0.01em;
         line-height: 1.2;
         margin-bottom: 20px;
-        /* gradient from accent green to a softer teal-white */
         background: linear-gradient(
           110deg,
           #3fe0a0 0%,
@@ -901,7 +1090,6 @@
       }
 
       .welcome-tagline .arrow {
-        /* opacity: 0.55; */
         font-weight: bolder;
       }
 
@@ -948,23 +1136,259 @@
         background: var(--border);
         max-width: 48px;
       }
+
+      /* ── MEDIA QUERIES ──────────────────────────────────────────────────────────── */
+
+      /* ── Tablet: 768px ───────────────────────────────────────────────────────── */
+      @media (max-width: 768px) {
+        .modal-box {
+          width: 92vw;
+        }
+
+        .modal-inner {
+          padding: 22px 20px 24px;
+        }
+
+        #share-bar {
+          min-width: 0;
+          width: calc(100vw - 40px);
+        }
+
+        .url-prefix {
+          font-size: 11px;
+          padding: 11px 8px;
+        }
+
+        .welcome-card {
+          padding: 28px 24px 24px;
+        }
+      }
+
+      /* ── Large mobile: 600px ─────────────────────────────────────────────────── */
+      @media (max-width: 600px) {
+        /* Topbar gets tight — hide bar-center stats */
+        .bar-center {
+          display: none;
+        }
+
+        .bar-right {
+          gap: 6px;
+        }
+
+        /* Shrink all ghost buttons to icon-like size */
+        .btn-ghost {
+          padding: 7px 10px;
+          font-size: 11px;
+        }
+
+        /* Keep share button readable */
+        #shareBtn {
+          padding: 7px 13px;
+        }
+
+        #edit-warning {
+          max-width: 200px;
+          right: 10px;
+        }
+      }
+
+      /* ── Mobile: 480px ───────────────────────────────────────────────────────── */
+      @media (max-width: 480px) {
+        :root {
+          --bar-height: 48px;
+          --ln-width: 36px;
+        }
+
+        #topbar {
+          padding: 0 12px;
+        }
+
+        .logo {
+          font-size: 15px;
+        }
+
+        /* Hide view badge and download on mobile — share bar already shows URL */
+        #view-badge,
+        #downloadBtn.show {
+          display: none;
+        }
+
+        /* Hide copy code text, keep just the glyph */
+        #copyCodeBtn {
+          padding: 7px 9px;
+          font-size: 0; /* hides "copy" text */
+        }
+        #copyCodeBtn::before {
+          font-size: 14px; /* glyph still visible */
+          opacity: 1;
+        }
+
+        #line-numbers {
+          padding-top: 14px;
+        }
+        #line-numbers span {
+          font-size: 11px;
+          padding-right: 8px;
+        }
+
+        #codeArea,
+        #code-highlight {
+          font-size: 12.5px;
+          padding: 14px 12px 40px 10px;
+        }
+
+        code[class*="language-"],
+        pre[class*="language-"] {
+          font-size: 12.5px !important;
+        }
+
+        #share-bar {
+          width: calc(100vw - 24px);
+          padding: 11px 12px;
+          gap: 8px;
+          bottom: 16px;
+        }
+
+        #shareUrl {
+          font-size: 11.5px;
+        }
+
+        #share-bar label {
+          display: none;
+        }
+
+        #toast {
+          bottom: 16px;
+          right: 16px;
+          font-size: 11px;
+          padding: 8px 14px;
+        }
+
+        #error-bar {
+          width: calc(100vw - 24px);
+          font-size: 12px;
+          padding: 10px 14px;
+          bottom: 16px;
+        }
+
+        .modal-box {
+          width: 96vw;
+          border-radius: 12px;
+        }
+
+        .modal-inner {
+          padding: 18px 16px 20px;
+        }
+
+        .modal-title {
+          font-size: 15px;
+        }
+
+        .modal-subtitle {
+          font-size: 12px;
+          margin-bottom: 16px;
+        }
+
+        .option-card {
+          padding: 12px 14px;
+          gap: 12px;
+        }
+
+        .option-title {
+          font-size: 12px;
+        }
+
+        .option-desc {
+          font-size: 11px;
+        }
+
+        .option-badge {
+          display: none;
+        }
+
+        /* Custom URL section — hide the long domain prefix, just show the input */
+        .url-prefix {
+          display: none;
+        }
+
+        #customCode {
+          padding: 11px 12px;
+        }
+
+        .modal-actions .btn {
+          padding: 11px 12px;
+          font-size: 12px;
+        }
+
+        #edit-warning {
+          top: calc(var(--bar-height) + 8px);
+          right: 8px;
+          max-width: 180px;
+          padding: 10px 12px;
+        }
+
+        .welcome-card {
+          padding: 24px 18px 20px;
+        }
+
+        .welcome-tagline {
+          font-size: 20px;
+        }
+
+        .welcome-desc {
+          font-size: 11.5px;
+        }
+      }
+
+      /* ── Small mobile: 360px ─────────────────────────────────────────────────── */
+      @media (max-width: 360px) {
+        .bar-right {
+          gap: 4px;
+        }
+
+        #shareBtn {
+          padding: 7px 10px;
+          font-size: 11px;
+        }
+
+        /* Stack new + copy into minimal icons */
+        #newBtn {
+          padding: 7px 8px;
+          font-size: 11px;
+        }
+
+        .modal-box {
+          width: 100vw;
+          border-radius: 0;
+          border-left: none;
+          border-right: none;
+        }
+      }
     </style>
   </head>
   <body>
+    <!-- Backend injects encoded snippet data + detected language -->
     <script>
-      window.__ENCODED__ = "{{ encoded | default('') }}";
+      window.__ENCODED__ = "{{ encoded  | default('') }}";
+      window.__LANGUAGE__ = "{{ language | default('text') }}";
     </script>
 
     <!-- TOP BAR -->
     <header id="topbar">
       <div class="logo">Code<span>Alive</span></div>
+
       <div class="bar-center">
         <span id="lineInfo">0 lines</span>
         <div class="dot"></div>
         <span id="charInfo">0 chars</span>
+        <!-- Language detection indicator — shown/hidden by JS -->
+        <div class="dot" id="langDot" style="display: none"></div>
+        <span id="langBadge" class="lang-badge" style="display: none"></span>
       </div>
+
       <div class="bar-right">
         <div id="view-badge"><span class="vdot"></span>viewing</div>
+        <button class="btn btn-ghost" id="copyCodeBtn">copy</button>
         <button class="btn btn-ghost" id="newBtn">new</button>
         <button class="btn btn-accent" id="shareBtn">share →</button>
         <button class="btn btn-ghost" id="downloadBtn">download ↓</button>
@@ -975,7 +1399,7 @@
     <div id="editor-wrap">
       <div id="line-numbers"></div>
 
-      <!-- WELCOME OVERLAY -->
+      <!-- WELCOME OVERLAY (sits above the editor container) -->
       <div id="welcome-overlay">
         <div class="welcome-card">
           <button class="welcome-close" id="welcomeClose" aria-label="Close">
@@ -998,14 +1422,26 @@
         </div>
       </div>
 
-      <textarea
-        id="codeArea"
-        spellcheck="false"
-        autocomplete="off"
-        autocorrect="off"
-        autocapitalize="off"
-        placeholder="// paste your code here..."
-      ></textarea>
+      <!--
+        Mirror container:
+          Layer 1 (z-index 1): #code-highlight — Prism-rendered <pre><code>
+          Layer 2 (z-index 2): #codeArea       — transparent textarea (captures input)
+      -->
+      <div id="code-editor-container">
+        <pre
+          id="code-highlight"
+          aria-hidden="true"
+        ><code id="code-highlighted"></code></pre>
+
+        <textarea
+          id="codeArea"
+          spellcheck="false"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          placeholder=""
+        ></textarea>
+      </div>
     </div>
 
     <!-- SHARE BAR -->
@@ -1020,7 +1456,6 @@
       <div class="modal-box">
         <div class="modal-stripe"></div>
         <div class="modal-inner">
-          <!-- Header -->
           <div class="modal-header">
             <div class="modal-title-group">
               <div class="modal-icon">🔗</div>
@@ -1038,7 +1473,6 @@
             your URL to look.
           </p>
 
-          <!-- Option cards -->
           <div class="option-cards">
             <div class="option-card selected" id="optionRandom">
               <div class="option-radio">
@@ -1070,7 +1504,6 @@
             </div>
           </div>
 
-          <!-- Custom URL input (slides in when custom selected) -->
           <div id="customUrlSection">
             <div class="url-label-row">
               <label class="url-label" for="customCode">Your custom slug</label>
@@ -1093,7 +1526,6 @@
             </p>
           </div>
 
-          <!-- Actions -->
           <div class="modal-actions">
             <button id="cancelShare" class="btn btn-ghost">cancel</button>
             <button id="createShare" class="btn btn-accent">
@@ -1120,9 +1552,125 @@
     <!-- TOAST -->
     <div id="toast">Copied!</div>
 
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Prism.js — load BEFORE main.js so Prism is available on init.
+         Core bundle already includes: markup/html/xml, css, clike, javascript.
+         Components are ordered so dependencies come before dependents.
+         Every language that language_detector.py can return has a script here.
+    ═══════════════════════════════════════════════════════════════════ -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- ── Languages already in core (no extra script needed) ────────────────
+         markup / html / xml  →  Prism.languages["html"] / ["xml"] ✓
+         css                  →  Prism.languages["css"]            ✓
+         javascript           →  Prism.languages["javascript"]     ✓
+    ─────────────────────────────────────────────────────────────────────── -->
+
+    <!-- ── Extra language components (one per language the detector returns) ── -->
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-templating.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-ruby.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-swift.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-kotlin.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-scala.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-groovy.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-dart.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-r.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cobol.min.js"
+      crossorigin="anonymous"
+    ></script>
+
+    <!-- Main application logic -->
     <script src="/static/main.js"></script>
 
-    <!-- WELCOME OVERLAY LOGIC -->
+    <!-- Welcome overlay logic (self-contained, no Prism dependency) -->
     <script>
       (function () {
         var overlay = document.getElementById("welcome-overlay");
@@ -1132,7 +1680,6 @@
         function dismissOverlay() {
           if (!overlay || overlay.classList.contains("hidden")) return;
           overlay.classList.add("hidden");
-          // Remove from DOM after animation ends
           overlay.addEventListener(
             "animationend",
             function () {
@@ -1146,7 +1693,6 @@
         if (textarea) textarea.addEventListener("focus", dismissOverlay);
         if (textarea) textarea.addEventListener("click", dismissOverlay);
 
-        // Also hide if there's already content (e.g. viewing a shared snippet)
         if (textarea && textarea.value.trim().length > 0) {
           overlay.style.display = "none";
         }
