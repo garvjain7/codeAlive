@@ -108,7 +108,7 @@ async def save(
         language = "text"
 
     # ── Persist ────────────────────────────────────────────────────────────────
-    highlights = sanitise_highlights(highlights)
+    highlights = str(sanitise_highlights(highlights))
     encoded = compress_code(code)
 
     # urlsafe-base64 never contains '/' so splitting on '/' is safe.
