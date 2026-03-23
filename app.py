@@ -15,6 +15,8 @@ from language_detector import detect_language
 
 app = FastAPI()
 
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 templates = Jinja2Templates(
@@ -26,6 +28,10 @@ app.mount(
     StaticFiles(directory=os.path.join(BASE_DIR, "static")),
     name="static"
 )
+
+print("CURRENT DIR:", os.getcwd())
+print("FILES:", os.listdir())
+print("TEMPLATES EXISTS:", os.path.exists("templates"))
 
 
 # ── Highlights sanitiser ─────────────────────────────────────────────────
