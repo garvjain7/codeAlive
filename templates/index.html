@@ -273,6 +273,28 @@
         overflow: hidden;
       }
 
+      /* ── Line highlight layer (behind Prism) ─────────────── */
+      #line-highlight-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background: var(--editor-bg);
+        pointer-events: none;
+        overflow: hidden;
+      }
+      #highlight-bands {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        will-change: transform;
+      }
+      .highlight-band {
+        position: absolute;
+        left: 0;
+        right: 0;
+      }
+
       /* ── Prism highlight layer ──────────────────────────── */
       #code-highlight {
         position: absolute;
@@ -289,7 +311,7 @@
         overflow-y: auto;
         pointer-events: none;
         tab-size: 2;
-        background: var(--editor-bg);
+        background: transparent; /* allow highlight bands to show */
         border: none;
         outline: none;
         /* Hide scrollbars — scrolled via JS in sync with textarea */
@@ -541,6 +563,62 @@
         height: 6px;
         border-radius: 50%;
         background: var(--accent);
+      }
+
+      /* ── Highlight popup ─────────────────────────────────── */
+      #highlight-popup {
+        position: fixed;
+        z-index: 400;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: #12151c;
+        border: 1px solid #252830;
+        border-radius: 8px;
+        padding: 5px 7px;
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(5px);
+        transition: opacity 0.14s, transform 0.14s;
+      }
+      #highlight-popup.show {
+        opacity: 1;
+        pointer-events: all;
+        transform: translateY(0);
+      }
+      .popup-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 5px 11px;
+        border-radius: 5px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 600;
+        cursor: pointer;
+        border: 1px solid transparent;
+        letter-spacing: 0.03em;
+        white-space: nowrap;
+        transition: background 0.12s, border-color 0.12s;
+      }
+      #popupHighlightBtn {
+        background: rgba(63, 224, 160, 0.09);
+        border-color: rgba(63, 224, 160, 0.22);
+        color: var(--accent);
+      }
+      #popupHighlightBtn:hover {
+        background: rgba(63, 224, 160, 0.17);
+        border-color: rgba(63, 224, 160, 0.38);
+      }
+      .popup-btn-remove {
+        background: rgba(240, 117, 117, 0.07);
+        border-color: rgba(240, 117, 117, 0.18);
+        color: var(--error);
+      }
+      .popup-btn-remove:hover {
+        background: rgba(240, 117, 117, 0.14);
+        border-color: rgba(240, 117, 117, 0.32);
       }
 
       /* ── SHARE MODAL OVERLAY ────────────────────────────── */
@@ -1371,6 +1449,7 @@
     <script>
       window.__ENCODED__ = "{{ encoded  | default('') }}";
       window.__LANGUAGE__ = "{{ language | default('text') }}";
+      window.__HIGHLIGHTS__ = "{{ highlights | default('') }}";
     </script>
 
     <!-- TOP BAR -->
@@ -1428,6 +1507,10 @@
           Layer 2 (z-index 2): #codeArea       — transparent textarea (captures input)
       -->
       <div id="code-editor-container">
+        <!-- Highlight bands (rendered by JS, scroll-synced) -->
+        <div id="line-highlight-layer" aria-hidden="true">
+          <div id="highlight-bands"></div>
+        </div>
         <pre
           id="code-highlight"
           aria-hidden="true"
@@ -1442,6 +1525,12 @@
           placeholder=""
         ></textarea>
       </div>
+    </div>
+
+    <!-- HIGHLIGHT POPUP (shown near selection in editor mode) -->
+    <div id="highlight-popup" role="menu" aria-label="Line highlight options">
+      <button class="popup-btn" id="popupHighlightBtn">⬛ highlight lines</button>
+      <button class="popup-btn popup-btn-remove" id="popupRemoveBtn">✕ remove</button>
     </div>
 
     <!-- SHARE BAR -->

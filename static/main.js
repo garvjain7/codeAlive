@@ -22,6 +22,15 @@ const charInfo   = document.getElementById("charInfo");
 const codeHighlight   = document.getElementById("code-highlight");
 const codeHighlighted = document.getElementById("code-highlighted");
 
+/* Line highlight bands (behind Prism) */
+const lineHighlightLayer = document.getElementById("line-highlight-layer");
+const highlightBands     = document.getElementById("highlight-bands");
+
+/* Floating popup for highlight selection */
+const highlightPopup    = document.getElementById("highlight-popup");
+const popupHighlightBtn = document.getElementById("popupHighlightBtn");
+const popupRemoveBtn    = document.getElementById("popupRemoveBtn");
+
 /* Language indicator in topbar */
 const langDot   = document.getElementById("langDot");
 const langBadge = document.getElementById("langBadge");
@@ -64,6 +73,226 @@ const DEBOUNCE_MS = 1000;  // ms of inactivity before detection fires on typing
 const COOLDOWN_MS = 2000;  // minimum ms between successive detection API calls
 const MIN_LINES   = 8;     // threshold: need at least this many lines …
 const MIN_CHARS   = 100;   // … OR this many characters to trigger detection
+
+/* Must match #codeArea / #code-highlight CSS exactly */
+const LINE_HEIGHT  = 22;   // px — line-height in editor
+const PADDING_TOP  = 18;   // px — padding-top in editor
+
+// Highlight colors taken from existing Prism palette so the bands feel native.
+const COLOR_POOL = [
+  { bg: "rgba(63,  224, 160, 0.10)", border: "#3fe0a0" }, // accent green
+  { bg: "rgba(123, 159, 255, 0.10)", border: "#7b9fff" }, // keyword blue
+  { bg: "rgba(245, 169, 127, 0.10)", border: "#f5a97f" }, // number orange
+  { bg: "rgba(232, 201, 110, 0.10)", border: "#e8c96e" }, // class yellow
+  { bg: "rgba(240, 128, 128, 0.10)", border: "#f08080" }, // error red
+];
+
+// highlights: Array of { id, start, end } where start/end are 1-based line numbers.
+let highlights       = [];
+let pendingSelection = null; // { startLine, endLine, targetHighlight }
+let hlIdCounter      = 0;
+
+function nextHlId() {
+  return `hl_${Date.now()}_${hlIdCounter++}`;
+}
+
+// "L6-L14,L32-L49" → [{id,start,end}, ...]
+function parseHighlights(str) {
+  if (!str || !str.trim()) return [];
+  return str
+    .split(",")
+    .map((part) => {
+      const m = part.trim().match(/^L(\d+)(?:-L(\d+))?$/i);
+      if (!m) return null;
+      const start = parseInt(m[1], 10);
+      const end   = m[2] ? parseInt(m[2], 10) : start;
+      if (isNaN(start) || isNaN(end) || start < 1 || end < start) return null;
+      return { id: nextHlId(), start, end };
+    })
+    .filter(Boolean);
+}
+
+// [{ start, end }, ...] → "L6-L14,L32-L49"
+function serializeHighlights(hls) {
+  if (!hls.length) return "";
+  return [...hls]
+    .sort((a, b) => a.start - b.start)
+    .map((h) => (h.start === h.end ? `L${h.start}` : `L${h.start}-L${h.end}`))
+    .join(",");
+}
+
+function syncHighlightBandsScroll() {
+  // translate scrollTop so bands line up with code text.
+  highlightBands.style.transform = `translateY(-${codeArea.scrollTop}px)`;
+}
+
+function renderHighlights() {
+  highlightBands.innerHTML = "";
+
+  highlights.forEach((h, i) => {
+    const color = COLOR_POOL[i % COLOR_POOL.length];
+    const band  = document.createElement("div");
+    band.className = "highlight-band";
+    band.style.top    = `${PADDING_TOP + (h.start - 1) * LINE_HEIGHT}px`;
+    band.style.height = `${(h.end - h.start + 1) * LINE_HEIGHT}px`;
+    band.style.background = color.bg;
+    band.style.borderLeft = `3px solid ${color.border}`;
+    highlightBands.appendChild(band);
+  });
+
+  syncHighlightBandsScroll();
+}
+
+function hideHighlightPopup() {
+  highlightPopup.classList.remove("show");
+  pendingSelection = null;
+}
+
+function showHighlightPopup(startLine, endLine, targetHighlight) {
+  const rect = codeArea.getBoundingClientRect();
+
+  const rawTop =
+    rect.top +
+    PADDING_TOP +
+    endLine * LINE_HEIGHT -
+    codeArea.scrollTop +
+    6;
+  const top  = Math.min(rawTop, window.innerHeight - 52);
+
+  const lnWidth = parseInt(
+    getComputedStyle(document.documentElement).getPropertyValue("--ln-width") || "52",
+    10
+  );
+  const left = rect.left + lnWidth + 12;
+
+  highlightPopup.style.top = `${top}px`;
+  highlightPopup.style.left = `${left}px`;
+  pendingSelection = { startLine, endLine, targetHighlight };
+
+  if (targetHighlight) {
+    popupHighlightBtn.textContent = "↔ resize highlighted lines";
+    popupHighlightBtn.style.display = "inline-flex";
+    popupRemoveBtn.style.display = "inline-flex";
+  } else {
+    popupHighlightBtn.textContent = "⬛ highlight lines";
+    popupHighlightBtn.style.display = "inline-flex";
+    popupRemoveBtn.style.display = "none";
+  }
+
+  highlightPopup.classList.add("show");
+}
+
+function onHighlightsChanged() {
+  renderHighlights();
+}
+
+function addHighlight(startLine, endLine) {
+  highlights.push({ id: nextHlId(), start: startLine, end: endLine });
+  onHighlightsChanged();
+}
+
+function removeHighlight(id) {
+  highlights = highlights.filter((h) => h.id !== id);
+  onHighlightsChanged();
+}
+
+function updateHighlight(id, startLine, endLine) {
+  const h = highlights.find((x) => x.id === id);
+  if (!h) return;
+  h.start = startLine;
+  h.end = endLine;
+  onHighlightsChanged();
+}
+
+function overlapLen(h, startLine, endLine) {
+  // Inclusive overlap length in lines.
+  const a = Math.max(h.start, startLine);
+  const b = Math.min(h.end, endLine);
+  if (b < a) return 0;
+  return b - a + 1;
+}
+
+function handleTextSelection() {
+  // Popup only appears on '/' (editor mode). On shared URLs this stays hidden.
+  if (window.location.pathname !== "/") return;
+
+  const { selectionStart, selectionEnd } = codeArea;
+  if (selectionStart === selectionEnd) {
+    hideHighlightPopup();
+    return;
+  }
+
+  const textBefore   = codeArea.value.substring(0, selectionStart);
+  const textSelected = codeArea.value.substring(selectionStart, selectionEnd);
+
+  const startLine = textBefore.split("\n").length;
+  const endLine   = startLine + textSelected.split("\n").length - 1;
+
+  // Find all highlights that overlap this selection.
+  // If multiple overlaps exist, edit the one with the largest overlap length.
+  const overlappingHighlights = highlights.filter(
+    (h) => !(h.end < startLine || h.start > endLine)
+  );
+
+  let target = null;
+  if (overlappingHighlights.length > 0) {
+    // Prefer highlights that contain the selection start line.
+    // This makes resizing deterministic when multiple highlights overlap
+    // on common lines.
+    const containingStart = overlappingHighlights.filter(
+      (h) => h.start <= startLine && h.end >= startLine
+    );
+
+    const pool = containingStart.length > 0 ? containingStart : overlappingHighlights;
+    pool.sort((a, b) => {
+      const da = overlapLen(a, startLine, endLine);
+      const db = overlapLen(b, startLine, endLine);
+      if (db !== da) return db - da; // larger overlap first
+      // Tie-break: choose the one with later start (more specific)
+      return b.start - a.start;
+    });
+
+    target = pool[0];
+  }
+
+  showHighlightPopup(startLine, endLine, target);
+}
+
+// Show popup after mouse selection
+codeArea.addEventListener("mouseup", handleTextSelection);
+// Show popup after keyboard selection (Shift+Arrow)
+codeArea.addEventListener("keyup", (e) => {
+  if (e.shiftKey) handleTextSelection();
+});
+
+popupHighlightBtn.addEventListener("click", () => {
+  if (!pendingSelection) return;
+  if (pendingSelection.targetHighlight) {
+    updateHighlight(
+      pendingSelection.targetHighlight.id,
+      pendingSelection.startLine,
+      pendingSelection.endLine
+    );
+  } else {
+    addHighlight(pendingSelection.startLine, pendingSelection.endLine);
+  }
+  hideHighlightPopup();
+  codeArea.focus();
+});
+
+popupRemoveBtn.addEventListener("click", () => {
+  if (!pendingSelection || !pendingSelection.targetHighlight) return;
+  removeHighlight(pendingSelection.targetHighlight.id);
+  hideHighlightPopup();
+  codeArea.focus();
+});
+
+document.addEventListener("mousedown", (e) => {
+  if (!highlightPopup.contains(e.target) && e.target !== codeArea) hideHighlightPopup();
+});
+
+// Hide popup when the user types
+codeArea.addEventListener("input", () => hideHighlightPopup());
 
 
 // ── 3. LANGUAGE DETECTION STATE MACHINE ──────────────────────────────────────
@@ -357,6 +586,7 @@ codeArea.addEventListener("click",  updateLineNumbers);
 codeArea.addEventListener("scroll", () => {
   lineNums.scrollTop = codeArea.scrollTop;
   syncHighlightScroll();
+  syncHighlightBandsScroll();
 });
 
 // Tab key: insert 2 spaces instead of leaving the textarea
@@ -485,7 +715,10 @@ shareModal.addEventListener("click", (e) => {
 });
 
 document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape" && shareModal.classList.contains("show")) closeModal();
+  if (e.key === "Escape") {
+    if (shareModal.classList.contains("show")) closeModal();
+    hideHighlightPopup();
+  }
 });
 
 
@@ -565,6 +798,10 @@ function enterHomeMode() {
   // reset() clears detection state, calls mirrorToHighlight() + updateLangBadge()
   clearTimeout(debounceTimer);
   detection.reset();
+
+  highlights = [];
+  renderHighlights();
+  hideHighlightPopup();
 
   updateLineNumbers();
   codeArea.focus();
@@ -660,6 +897,8 @@ createShare.addEventListener("click", async () => {
   const formData = new FormData();
   formData.append("code", code);
   formData.append("language", language);
+  const highlightsStr = serializeHighlights(highlights);
+  if (highlightsStr) formData.append("highlights", highlightsStr);
   if (custom.trim() !== "") {
     formData.append("custom_code", custom.trim());
   }
@@ -683,6 +922,7 @@ createShare.addEventListener("click", async () => {
     showShareBar(fullUrl);
     enterViewMode();
     closeModal();
+    hideHighlightPopup();
 
     hideEditWarning();
     editWarningDismissed = false;
@@ -795,7 +1035,7 @@ async function decodeAndDecompress(encoded) {
 //  throw on corrupt or malformed data, and we need to show a user-facing error.
 // ─────────────────────────────────────────────────────────────────────────────
 
-async function loadEncodedSnippet(encoded, language = "text") {
+async function loadEncodedSnippet(encoded, language = "text", highlightsStr = "") {
   try {
     const code = await decodeAndDecompress(encoded);
 
@@ -805,6 +1045,10 @@ async function loadEncodedSnippet(encoded, language = "text") {
     // Pre-populate detection state from URL so share button skips re-detection
     detection.status   = "done";
     detection.language = language;
+
+    // Apply stored highlight bands (from Redis /{code_id} page).
+    highlights = parseHighlights(highlightsStr);
+    renderHighlights();
 
     updateLineNumbers();
     mirrorToHighlight();   // language is set → Prism highlights immediately
@@ -825,14 +1069,18 @@ async function loadEncodedSnippet(encoded, language = "text") {
 (async function init() {
   updateLineNumbers();
   mirrorToHighlight();
+  renderHighlights();
 
   const encoded  = window.__ENCODED__  || "";
   const language = window.__LANGUAGE__ || "text";
+  const storedHighlights = window.__HIGHLIGHTS__ || "";
 
   if (encoded.length > 0) {
     // Shared URL: load, highlight with stored language, skip detection entirely
-    await loadEncodedSnippet(encoded, language);
+    await loadEncodedSnippet(encoded, language, storedHighlights);
   } else {
+    highlights = [];
+    renderHighlights();
     codeArea.focus();
   }
 })();

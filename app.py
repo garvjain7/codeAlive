@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import asyncio
+import re
 import os
 import uvicorn
 
@@ -16,6 +17,22 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+
+# ── Highlights sanitiser ─────────────────────────────────────────────────
+# Expected format: "L6-L14,L32-L49" (no leading '#').
+_HIGHLIGHTS_RE = re.compile(r"^L\d+(-L\d+)?(,L\d+(-L\d+)?)*$", re.IGNORECASE)
+
+def sanitise_highlights(raw: str) -> str:
+    """Return a valid highlights string, or empty string if invalid."""
+    if not raw:
+        return ""
+    raw = raw.strip()
+    if len(raw) > 200:
+        return ""
+    if not _HIGHLIGHTS_RE.match(raw):
+        return ""
+    return raw
 
 
 # ── Request model ──────────────────────────────────────────────────────────────
@@ -53,6 +70,7 @@ async def detect_language_endpoint(body: DetectRequest):
 async def save(
     code: str        = Form(...),
     language: str    = Form("text"),
+    highlights: str  = Form(""),
     custom_code: str = Form(None),
 ):
     """
@@ -90,9 +108,14 @@ async def save(
         language = "text"
 
     # ── Persist ────────────────────────────────────────────────────────────────
+    highlights = sanitise_highlights(highlights)
     encoded = compress_code(code)
-    # urlsafe-base64 never contains '/' so splitting on the last '/' is safe.
-    redis_client.set(code_id, f"{encoded}/{language}")
+
+    # urlsafe-base64 never contains '/' so splitting on '/' is safe.
+    if highlights:
+        redis_client.set(code_id, f"{encoded}/{language}/{highlights}")
+    else:
+        redis_client.set(code_id, f"{encoded}/{language}")
 
     return {"url": f"/{code_id}"}
 
@@ -112,18 +135,26 @@ async def get_code_page(request: Request, code_id: str):
         raise HTTPException(404, "Code not found")
 
     # ── Parse stored value ────────────────────────────────────────────────────
-    parts = stored.rsplit("/", 1)
+    # New format: encoded/language/highlights
+    # Old format: encoded/language
+    # Legacy fallback: encoded (no language)
+    parts = stored.rsplit("/", 2)
 
-    if len(parts) == 2:
+    if len(parts) == 3:
+        encoded, language, highlights = parts
+    elif len(parts) == 2:
         encoded, language = parts
+        highlights = ""
     else:
-        # Graceful fallback — handles values saved before this format.
-        encoded  = stored
-        language = "text"
+        encoded    = stored
+        language   = "text"
+        highlights = ""
 
     # Never pass empty or suspiciously long values to the template.
     if not language or len(language) > 30:
         language = "text"
+
+    highlights = sanitise_highlights(highlights)
 
     return templates.TemplateResponse(
         "index.html",
@@ -131,6 +162,7 @@ async def get_code_page(request: Request, code_id: str):
             "request":  request,
             "encoded":  encoded,
             "language": language,
+            "highlights": highlights,
         },
     )
 
