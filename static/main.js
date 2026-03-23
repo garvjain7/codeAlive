@@ -898,10 +898,13 @@ createShare.addEventListener("click", async () => {
   formData.append("code", code);
   formData.append("language", language);
   const highlightsStr = serializeHighlights(highlights);
-  if (highlightsStr) formData.append("highlights", highlightsStr);
-  if (custom.trim() !== "") {
-    formData.append("custom_code", custom.trim());
-  }
+  // if (highlightsStr) formData.append("highlights", highlightsStr);
+  // if (custom.trim() !== "") {
+  //   formData.append("custom_code", custom.trim());
+  // }
+
+  formData.append("highlights", highlightsStr || "");
+  formData.append("custom_code", custom.trim() || "");
 
   setCreateBtnLoading("creating...");
 
