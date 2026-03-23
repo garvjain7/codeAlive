@@ -15,8 +15,17 @@ from language_detector import detect_language
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-templates = Jinja2Templates(directory="templates")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+templates = Jinja2Templates(
+    directory=os.path.join(BASE_DIR, "templates")
+)
+
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(BASE_DIR, "static")),
+    name="static"
+)
 
 
 # ── Highlights sanitiser ─────────────────────────────────────────────────
@@ -108,7 +117,7 @@ async def save(
         language = "text"
 
     # ── Persist ────────────────────────────────────────────────────────────────
-    highlights = str(sanitise_highlights(highlights))
+    highlights = sanitise_highlights(highlights)
     encoded = compress_code(code)
 
     # urlsafe-base64 never contains '/' so splitting on '/' is safe.
