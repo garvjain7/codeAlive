@@ -214,7 +214,8 @@ function overlapLen(h, startLine, endLine) {
 
 function handleTextSelection() {
   // Popup only appears on '/' (editor mode). On shared URLs this stays hidden.
-  if (window.location.pathname !== "/") return;
+  // if (window.location.pathname !== "/") return;
+  if (window.location.pathname.length > 1) return;
 
   const { selectionStart, selectionEnd } = codeArea;
   if (selectionStart === selectionEnd) {
@@ -899,7 +900,7 @@ createShare.addEventListener("click", async () => {
   formData.append("language", language);
   const highlightsStr = serializeHighlights(highlights);
   // if (highlightsStr) formData.append("highlights", highlightsStr);
-  // if (custom.trim() !== "") {
+  // if (custom.trim() !== "") {popupHighlightBtn
   //   formData.append("custom_code", custom.trim());
   // }
 
