@@ -360,6 +360,23 @@
         border-radius: 4px;
       }
 
+      #editor-hint-empty,
+      #editor-hint-highlight {
+        position: absolute;
+        bottom: 18px;
+        left: calc(var(--ln-width) + 18px);
+        font-size: 11.5px;
+        color: #5a6478;
+        pointer-events: none;
+        z-index: 3;
+        transition: opacity 0.4s ease;
+        user-select: none;
+      }
+      #editor-hint-empty.hidden,
+      #editor-hint-highlight.hidden {
+        opacity: 0;
+      }
+
       /* ── Prism token colours — tuned for CodeAlive's dark palette ── */
       code[class*="language-"],
       pre[class*="language-"] {
@@ -580,7 +597,9 @@
         opacity: 0;
         pointer-events: none;
         transform: translateY(5px);
-        transition: opacity 0.14s, transform 0.14s;
+        transition:
+          opacity 0.14s,
+          transform 0.14s;
       }
       #highlight-popup.show {
         opacity: 1;
@@ -600,7 +619,9 @@
         border: 1px solid transparent;
         letter-spacing: 0.03em;
         white-space: nowrap;
-        transition: background 0.12s, border-color 0.12s;
+        transition:
+          background 0.12s,
+          border-color 0.12s;
       }
       #popupHighlightBtn {
         background: rgba(63, 224, 160, 0.09);
@@ -1215,6 +1236,196 @@
         max-width: 48px;
       }
 
+      /* Modal Overlay */
+      .highlight-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+      }
+
+      .hidden { display: none; }
+
+      /* Modal Box - Smaller & Compact */
+      .highlight-modal-content {
+        background: #0d1117;
+        color: #fff;
+        width: 840px;                    /* Reduced width */
+        max-width: 94vw;
+        max-height: 86vh;
+        border-radius: 16px;
+        padding: 24px 28px 28px;         /* Reduced padding */
+        position: relative;
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.7);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* Close Button */
+      .highlight-close {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        background: transparent;
+        border: none;
+        color: #8b949e;
+        font-size: 22px;
+        cursor: pointer;
+        padding: 4px;
+      }
+
+      .highlight-close:hover { color: #fff; }
+
+      /* Header */
+      .highlight-title {
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 6px 0;
+      }
+
+      .highlight-subtitle {
+        color: #8b949e;
+        font-size: 14px;
+        line-height: 1.5;
+        margin-bottom: 22px;
+      }
+
+      /* Steps Container */
+      .highlight-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;                       /* Tighter gap between steps */
+        flex: 1;
+      }
+
+      /* Each Step Row */
+      .step-row {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        background: #161b22;
+        border-radius: 12px;
+        padding: 14px 18px;              /* Reduced padding inside row */
+        min-height: 130px;               /* Smaller row height */
+      }
+
+      /* Text Side */
+      .step-text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .step-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 6px;
+      }
+
+      .step-number {
+        background: #1f6feb;
+        color: white;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14.5px;
+        flex-shrink: 0;
+      }
+
+      .step-text h4 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      .step-text p {
+        margin: 0;
+        color: #c9d1d9;
+        font-size: 13.8px;
+        line-height: 1.5;
+      }
+
+      .tip {
+        color: #58a6ff;
+      }
+
+      /* Image Side - Smaller but clear */
+      .step-image {
+        width: 210px;                    /* Further reduced */
+        flex-shrink: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #0d1117;
+        border: 1px solid #21262d;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .step-image img {
+        width: 100%;
+        height: auto;
+        max-height: 118px;               /* Reduced max height */
+        display: block;
+        object-fit: contain;
+        image-rendering: crisp-edges;
+      }
+
+      /* Footer - Ensures button is always visible */
+      .highlight-footer {
+        margin-top: auto;                /* Pushes button to bottom */
+        padding-top: 18px;
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .highlight-btn {
+        background: #22c55e;
+        color: #000;
+        font-weight: 600;
+        padding: 11px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14.8px;
+      }
+
+      .highlight-btn:hover {
+        background: #16a34a;
+      }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .highlight-modal-content {
+          width: 94vw;
+          padding: 18px 22px 24px;
+        }
+
+        .step-row {
+          flex-direction: column;
+          gap: 14px;
+          padding: 16px;
+          min-height: auto;
+        }
+
+        .step-image {
+          width: 100%;
+          max-height: 140px;
+        }
+
+        .step-image img {
+          max-height: 130px;
+        }
+      }
+
       /* ── MEDIA QUERIES ──────────────────────────────────────────────────────────── */
 
       /* ── Tablet: 768px ───────────────────────────────────────────────────────── */
@@ -1467,6 +1678,7 @@
 
       <div class="bar-right">
         <div id="view-badge"><span class="vdot"></span>viewing</div>
+        <button class="btn btn-ghost" id="howItWorksBtn">🟩 Highlighting Guide</button>
         <button class="btn btn-ghost" id="copyCodeBtn">copy</button>
         <button class="btn btn-ghost" id="newBtn">new</button>
         <button class="btn btn-accent" id="shareBtn">share →</button>
@@ -1486,7 +1698,7 @@
           </button>
           <div class="welcome-tagline">
             <div class="welcome-tagline">
-              Write <span class="arrow">→</span> Share
+              Paste <span class="arrow">→</span> Share
               <span class="arrow">→</span> Access
               <span class="arrow"></span> Repeat
             </div>
@@ -1516,6 +1728,14 @@
           aria-hidden="true"
         ><code id="code-highlighted"></code></pre>
 
+        <div id="editor-hint-empty">
+          ↳ Paste or type your code here
+        </div>
+
+        <div id="editor-hint-highlight" class="hidden">
+          💡 Select any lines to highlight and share
+        </div>
+
         <textarea
           id="codeArea"
           spellcheck="false"
@@ -1529,8 +1749,12 @@
 
     <!-- HIGHLIGHT POPUP (shown near selection in editor mode) -->
     <div id="highlight-popup" role="menu" aria-label="Line highlight options">
-      <button class="popup-btn" id="popupHighlightBtn">⬛ highlight lines</button>
-      <button class="popup-btn popup-btn-remove" id="popupRemoveBtn">✕ remove</button>
+      <button class="popup-btn" id="popupHighlightBtn">
+        ⬛ highlight lines
+      </button>
+      <button class="popup-btn popup-btn-remove" id="popupRemoveBtn">
+        ✕ remove
+      </button>
     </div>
 
     <!-- SHARE BAR -->
@@ -1640,6 +1864,75 @@
 
     <!-- TOAST -->
     <div id="toast">Copied!</div>
+
+    <!-- Highlight Instruction Modal -->
+    <div id="highlightModal" class="highlight-modal hidden">
+      <div class="highlight-modal-content">
+        <!-- Close Button -->
+        <button id="highlightCloseBtn" class="highlight-close">✕</button>
+
+        <!-- Header -->
+        <h2 class="highlight-title">✨ Highlight & Share Code Instantly</h2>
+        <p class="highlight-subtitle">
+          Highlight any part of your code and share it instantly.<br />
+          Perfect for explaining bugs, sharing logic, or reviewing.
+        </p>
+
+        <!-- Steps with images side by side -->
+        <div class="highlight-steps">
+
+          <!-- Step 1 -->
+          <div class="step-row">
+            <div class="step-text">
+              <div class="step-header">
+                <span class="step-number">1</span>
+                <h4>Select lines in the editor</h4>
+              </div>
+              <p>Click and drag like normal text selection.<br>
+                <span class="tip">💡 Works like selecting text in a document</span>
+              </p>
+            </div>
+            <div class="step-image">
+              <img src="/static/images/step1.png" alt="Select lines demo" />
+            </div>
+          </div>
+
+          <!-- Step 2 -->
+          <div class="step-row">
+            <div class="step-text">
+              <div class="step-header">
+                <span class="step-number">2</span>
+                <h4>Click “Highlight lines”</h4>
+              </div>
+              <p>A popup appears after selection. One click applies highlight.</p>
+            </div>
+            <div class="step-image">
+              <img src="/static/images/step2.png" alt="Highlight popup demo" />
+            </div>
+          </div>
+
+          <!-- Step 3 -->
+          <div class="step-row">
+            <div class="step-text">
+              <div class="step-header">
+                <span class="step-number">3</span>
+                <h4>Share your link</h4>
+              </div>
+              <p>Highlights are saved in your link — everyone sees the same view.</p>
+            </div>
+            <div class="step-image">
+              <img src="/static/images/step3.png" alt="Shared highlight demo" />
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="highlight-footer">
+          <button id="highlightGotIt" class="highlight-btn">Got it →</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ═══════════════════════════════════════════════════════════════════
          Prism.js — load BEFORE main.js so Prism is available on init.
@@ -1769,6 +2062,10 @@
         function dismissOverlay() {
           if (!overlay || overlay.classList.contains("hidden")) return;
           overlay.classList.add("hidden");
+          
+          triggerHighlightAfterWelcome()
+          console.log("Trigger highlight function is called...")
+
           overlay.addEventListener(
             "animationend",
             function () {
