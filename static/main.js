@@ -1039,19 +1039,21 @@ if (howItWorksBtn) {
 // 🚀 Trigger AFTER welcome box hides
 // ===============================
 
+// ===============================
+// HIGHLIGHT GUIDE MODAL LOGIC
+// ===============================
+
 function triggerHighlightAfterWelcome() {
-  // ✅ Only show on homepage
-  const isHomePage = window.location.pathname === "/";
+  // Only show on homepage
+  if (window.location.pathname !== "/") return;
 
-  // ✅ Check if already seen
-  const seen = localStorage.getItem("seenHighlightGuide");
+  // Don't show again if already seen
+  if (localStorage.getItem("seenHighlightGuide") === "true") return;
 
-  if (!seen && isHomePage) {
-    setTimeout(() => {
-      openHighlightModal();
-      localStorage.setItem("seenHighlightGuide", "true");
-    }, 500);
-  }
+  setTimeout(() => {
+    openHighlightModal();
+    localStorage.setItem("seenHighlightGuide", "true");
+  }, 600);
 }
 
 // ── 21. UNSAVED CHANGES WARNING ───────────────────────────────────────────────
@@ -1066,7 +1068,6 @@ window.addEventListener("beforeunload", (e) => {
 // ── 22. DECODE + DECOMPRESS ───────────────────────────────────────────────────
 
 async function decodeAndDecompress(encoded) {
-  // URL-safe base64 → standard base64 → binary
   const std = encoded.replace(/-/g, "+").replace(/_/g, "/");
   const padded = std + "=".repeat((4 - (std.length % 4)) % 4);
   const binary = atob(padded);
@@ -1100,36 +1101,23 @@ async function decodeAndDecompress(encoded) {
   return new TextDecoder().decode(result);
 }
 
-// ── 23. LOAD ENCODED SNIPPET (shared URL) ────────────────────────────────────
-//
-//  Language comes from window.__LANGUAGE__ (injected by GET /{code_id}).
-//  Detection is NEVER triggered here — the stored language is authoritative.
-//
-//  try/catch here is legitimate — atob() and gzip decompression can both
-//  throw on corrupt or malformed data, and we need to show a user-facing error.
-// ─────────────────────────────────────────────────────────────────────────────
+// ── 23. LOAD ENCODED SNIPPET ─────────────────────────────────────────────────
 
-async function loadEncodedSnippet(
-  encoded,
-  language = "text",
-  highlightsStr = "",
-) {
+async function loadEncodedSnippet(encoded, language = "text", highlightsStr = "") {
   try {
     const code = await decodeAndDecompress(encoded);
 
     codeArea.value = code;
     codeArea.readOnly = false;
 
-    // Pre-populate detection state from URL so share button skips re-detection
     detection.status = "done";
     detection.language = language;
 
-    // Apply stored highlight bands (from Redis /{code_id} page).
     highlights = parseHighlights(highlightsStr);
     renderHighlights();
 
     updateLineNumbers();
-    mirrorToHighlight(); // language is set → Prism highlights immediately
+    mirrorToHighlight();
     updateLangBadge();
 
     showShareBar(window.location.href);
@@ -1140,37 +1128,28 @@ async function loadEncodedSnippet(
   }
 }
 
-// ── 24. INIT ──────────────────────────────────────────────────────────────────
+// ── 24. INIT ─────────────────────────────────────────────────────────────────
 
 (async function init() {
   updateLineNumbers();
   mirrorToHighlight();
   renderHighlights();
 
-  const encoded  = window.__ENCODED__  || "";
+  const encoded = window.__ENCODED__ || "";
   const language = window.__LANGUAGE__ || "text";
   const storedHighlights = window.__HIGHLIGHTS__ || "";
 
   if (encoded.length > 0) {
-    // Shared URL: load, highlight with stored language, skip detection entirely
     await loadEncodedSnippet(encoded, language, storedHighlights);
   } else {
     highlights = [];
     renderHighlights();
     codeArea.focus();
 
-    // ── Two-phase inline hint ──────────────────────────────────
+    // Show highlight hint after first input
     codeArea.addEventListener("input", function showHighlightHint() {
       editorHintEmpty.classList.add("hidden");
       editorHintHighlight.classList.remove("hidden");
     }, { once: true });
   }
-
-  ```
-  Logic Flows: ->
-  1. Page loads → Show: "Paste or type your code"
-  2. User starts typing/pasting → Hide first hint
-  3. Code exists → Show: "Select any lines to highlight and share"
-  4. Second hint → NEVER hides
-  ```
 })();
