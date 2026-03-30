@@ -16,6 +16,7 @@ import {
   newBtn,
   downloadBtn,
   shareUrl,
+  customCode,
 } from "./dom.js";
 
 import { MAX_LINES } from "./constants.js";
@@ -26,7 +27,6 @@ import {
   openModal,
   closeModal,
   selectedOption,
-  customCode,
   setCreateBtnLoading,
   setCreateBtnNormal,
 } from "./modal.js";

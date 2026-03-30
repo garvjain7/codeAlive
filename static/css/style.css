@@ -1146,6 +1146,7 @@ pre[class*="language-"] {
 
 #welcome-overlay.hidden {
     animation: welcomeFadeOut 0.3s ease forwards;
+    pointer-events: none;
 }
 
 @keyframes welcomeFadeIn {

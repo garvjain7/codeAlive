@@ -437,40 +437,38 @@
 
     <!-- Welcome overlay logic (self-contained, no Prism dependency) -->
     <script>
-      (function () {
-        const overlay = document.getElementById("welcome-overlay");
-        const closeBtn = document.getElementById("welcomeClose");
-        const textarea = document.getElementById("codeArea");
+  (function () {
+    const overlay = document.getElementById("welcome-overlay");
+    const closeBtn = document.getElementById("welcomeClose");
+    const textarea = document.getElementById("codeArea");
 
-        function dismissOverlay() {
-          if (!overlay || overlay.classList.contains("hidden")) return;
+    function dismissOverlay() {
+      if (!overlay || overlay.classList.contains("hidden")) return;
 
-          overlay.classList.add("hidden");
+      overlay.classList.add("hidden");
+      // Don't wait for animationend — set pointer-events off immediately
+      // so the overlay never blocks the editor underneath
+      overlay.style.pointerEvents = "none";
 
-          // Safely call function from main.js
-          if (typeof triggerHighlightAfterWelcome === "function") {
-            triggerHighlightAfterWelcome();
-          }
+      if (typeof triggerHighlightAfterWelcome === "function") {
+        triggerHighlightAfterWelcome();
+      }
 
-          overlay.addEventListener(
-            "animationend",
-            () => {
-              overlay.style.display = "none";
-            },
-            { once: true },
-          );
-        }
+      overlay.addEventListener(
+        "animationend",
+        () => { overlay.style.display = "none"; },
+        { once: true },
+      );
+    }
 
-        if (closeBtn) closeBtn.addEventListener("click", dismissOverlay);
-        if (textarea) {
-          // textarea.addEventListener("focus", dismissOverlay);
-          textarea.addEventListener("click", dismissOverlay);
-        }
+    if (closeBtn) closeBtn.addEventListener("click", dismissOverlay);
+    // click only — no focus listener (focus fires on programmatic codeArea.focus() too)
+    if (textarea) textarea.addEventListener("click", dismissOverlay);
 
-        if (textarea && textarea.value.trim().length > 0) {
-          overlay.style.display = "none";
-        }
-      })();
-    </script>
+    if (textarea && textarea.value.trim().length > 0) {
+      overlay.style.display = "none";
+    }
+  })();
+</script>
   </body>
 </html>
