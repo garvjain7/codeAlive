@@ -14,7 +14,14 @@
 //  supplies this via initEditor(getLanguage), where getLanguage is a closure
 //  that reads detection.language without this module importing detection.js.
 
-import { codeArea, lineNums, lineInfo, charInfo, codeHighlight, codeHighlighted } from "./dom.js";
+import {
+  codeArea,
+  lineNums,
+  lineInfo,
+  charInfo,
+  codeHighlight,
+  codeHighlighted,
+} from "./dom.js";
 import { syncHighlightBandsScroll } from "./highlights.js";
 
 // ── Language getter (injected by main.js) ─────────────────────────────────────
@@ -60,6 +67,10 @@ function escapeHtml(str) {
  * @param {string} language — Prism language key (e.g. "python", "text")
  */
 export function mirrorToHighlight(code, language) {
+  console.log("🔥 mirrorToHighlight input:", {
+    code,
+    language,
+  });
   let html;
 
   if (
@@ -114,7 +125,7 @@ export function mirrorToHighlight(code, language) {
 }
 
 export function syncHighlightScroll() {
-  codeHighlight.scrollTop  = codeArea.scrollTop;
+  codeHighlight.scrollTop = codeArea.scrollTop;
   codeHighlight.scrollLeft = codeArea.scrollLeft;
 }
 
@@ -128,9 +139,9 @@ codeArea.addEventListener("input", () => {
 // ── Line numbers ──────────────────────────────────────────────────────────────
 
 export function updateLineNumbers() {
-  const lines      = codeArea.value.split("\n");
-  const count      = lines.length;
-  const cursorPos  = codeArea.selectionStart;
+  const lines = codeArea.value.split("\n");
+  const count = lines.length;
+  const cursorPos = codeArea.selectionStart;
   const activeLine = codeArea.value.substring(0, cursorPos).split("\n").length;
 
   lineInfo.textContent = `${count} line${count !== 1 ? "s" : ""}`;
@@ -167,7 +178,7 @@ codeArea.addEventListener("keydown", (e) => {
   e.preventDefault();
 
   const start = codeArea.selectionStart;
-  const end   = codeArea.selectionEnd;
+  const end = codeArea.selectionEnd;
 
   codeArea.value =
     codeArea.value.substring(0, start) + "  " + codeArea.value.substring(end);
