@@ -67,7 +67,7 @@ export async function loadEncodedSnippet(encoded, language = "text", highlightsS
 
     updateLineNumbers();
     mirrorToHighlight(codeArea.value, detection.language);
-    updateLangBadge(detection.status, detection.language);
+    updateLangBadge({ status: detection.status, language: detection.language });
 
     showShareBar(window.location.href);
     enterViewMode();
