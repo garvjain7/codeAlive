@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://codealive.onrender.com/sitemap.xml
