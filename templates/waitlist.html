@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Join the CodeAlive waitlist for real-time collaborative coding rooms. Create rooms, invite others, and write code together live." />
+    <meta name="google-site-verification" content="ea83WnXtdNRmXKKzvfTx9xfJeVKtxGbNgeumq_eiRSk" />
+    <meta name="google-site-verification" content="NLcoGDSaxNXHirIutPY2zIK0qpIR3pDcBgH8tvo_MeQ" />
+    <meta name="keywords" content="code editor, collaborative coding, real-time coding, online IDE, CodeAlive, waitlist" />
+    <meta property="og:title" content="CodeAlive — Collaborative Coding Waitlist" />
+    <meta property="og:description" content="Be the first to know when collaborative rooms launch. Write code together in real time." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://codealive.onrender.com/waitlist" />
+    <title>Join the Waitlist — CodeAlive Collaboration</title>
+
+    <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="stylesheet" href="/static/css/waitlist.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap" rel="stylesheet" />
+
+    <!-- Google tag -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQXHZCDKRS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-SQXHZCDKRS');
+    </script>
+  </head>
+
+  <body>
+
+    <!-- ── NAVBAR ──────────────────────────────────────────────────── -->
+    <nav id="navbar">
+      <a href="/" class="nav-logo">
+        <span class="logo-pulse"></span>
+        Code<span class="logo-dim">Alive</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="/#features">Features</a></li>
+        <li><a href="/#how-it-works">How it works</a></li>
+        <li><a href="/#collab">Collaboration</a></li>
+      </ul>
+
+      <div class="nav-right">
+        <a href="/editor" class="btn-ghost-sm">Open Editor</a>
+        <a href="/" class="btn-green-sm">← Back to Home</a>
+      </div>
+    </nav>
+
+    <!-- ── WAITLIST HERO ───────────────────────────────────────────── -->
+    <main id="waitlist-hero">
+      <div class="hero-grid-bg"></div>
+      <div class="hero-glow-blue"></div>
+      
+      <div class="waitlist-container reveal">
+        <div class="hero-eyebrow">
+          <span class="eyebrow-dot"></span>
+          Coming Soon
+        </div>
+        
+        <h1>Collaborative Code Sharing<br>is <em>Coming Soon</em></h1>
+        
+        <p class="waitlist-sub">
+          Create rooms, invite others, and write code together in real time.<br>
+          Be the first to know when collaborative coding launches on CodeAlive.
+        </p>
+
+        <form id="waitlist-form" class="waitlist-form">
+          <div class="input-group">
+            <input 
+              type="email" 
+              id="email" 
+              name="email" 
+              placeholder="Enter your email address" 
+              required
+              autocomplete="email"
+            >
+            <button type="submit" id="submit-btn" class="btn-primary">
+              <span class="btn-text">Join Waitlist</span>
+              <span class="loader hidden"></span>
+            </button>
+          </div>
+          <p class="form-note">No spam. Only launch updates.</p>
+          <div class="form-footer-actions">
+            <a href="/" class="btn-link-sm">← Back to Home</a>
+          </div>
+        </form>
+
+        <div id="success-state" class="success-state hidden">
+          <div class="success-icon">🚀</div>
+          <h3>You're on the waitlist!</h3>
+          <p>We’ll notify you as soon as collaborative rooms go live.</p>
+          <a href="/" class="btn-ghost-sm">← Back to home</a>
+        </div>
+
+        <div id="error-message" class="error-message hidden">
+          Something went wrong. Please try again.
+        </div>
+      </div>
+    </main>
+
+    <!-- ── FOOTER ───────────────────────────────────────────────────── -->
+    <footer id="footer">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <span class="logo-pulse-sm"></span>
+          Code<span class="logo-dim">Alive</span>
+        </div>
+        <div class="footer-links">
+          <a href="/editor">Editor</a>
+          <a href="/waitlist">Waitlist</a>
+          <a href="/#features">Features</a>
+        </div>
+        <div class="footer-note">
+          Built with FastAPI · Redis · MongoDB · Deployed on Render
+        </div>
+      </div>
+    </footer>
+
+    <script src="/static/home.js"></script>
+    <script src="/static/waitlist.js"></script>
+  </body>
+</html>

@@ -37,6 +37,7 @@ import { highlights, renderHighlights } from "./highlights.js";
 import { initEditor, updateLineNumbers, mirrorToHighlight } from "./editor.js";
 import { updateLangBadge } from "./ui.js";
 import { loadEncodedSnippet } from "./codec.js";
+import { initImageHandler, renderImagePlaceholders } from "./image-handler.js";
 
 // ── Wire detection → ui + editor (the orchestrator's core job) ────────────────
 //
@@ -91,11 +92,13 @@ window.addEventListener("beforeunload", (e) => {
 
   if (encoded.length > 0) {
     await loadEncodedSnippet(encoded, language, storedHighlights);
+    renderImagePlaceholders();
   } else {
     highlights.length = 0;
     renderHighlights();
     codeArea.focus();
 
+    initImageHandler();
     // Show highlight hint after first input
     codeArea.addEventListener("input", function showHighlightHint() {
       editorHintEmpty.classList.add("hidden");

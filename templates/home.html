@@ -1,0 +1,511 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="CodeAlive — Paste code, share instantly. Syntax highlighting, image support, and real-time collaboration coming soon." />
+    <meta name="google-site-verification" content="ea83WnXtdNRmXKKzvfTx9xfJeVKtxGbNgeumq_eiRSk" />
+    <meta name="google-site-verification" content="NLcoGDSaxNXHirIutPY2zIK0qpIR3pDcBgH8tvo_MeQ" />
+    <meta name="keywords" content="code editor, collaborative coding, real-time coding, online IDE, CodeAlive" />
+    <meta property="og:title" content="CodeAlive — Share Code. Live." />
+    <meta property="og:description" content="Paste any code, get a shareable link in seconds. No login, no friction." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://codealive.onrender.com" />
+    <title>CodeAlive — Share Code. Live.</title>
+
+    <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap" rel="stylesheet" />
+
+    <!-- Google tag -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQXHZCDKRS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-SQXHZCDKRS');
+    </script>
+  </head>
+
+  <body>
+
+    <!-- ── NAVBAR ──────────────────────────────────────────────────── -->
+    <nav id="navbar">
+      <a href="/" class="nav-logo">
+        <span class="logo-pulse"></span>
+        Code<span class="logo-dim">Alive</span>
+      </a>
+
+      <ul class="nav-links">
+        <li><a href="#features">Features</a></li>
+        <li><a href="#how-it-works">How it works</a></li>
+        <li><a href="#collab">Collaboration</a></li>
+      </ul>
+
+      <div class="nav-right">
+        <a href="/editor" class="btn-ghost-sm" target="_blank" rel="noopener">Open Editor</a>
+        <a href="/waitlist" class="btn-green-sm" target="_blank" rel="noopener">Join Waitlist →</a>
+      </div>
+    </nav>
+
+    <!-- ── HERO ────────────────────────────────────────────────────── -->
+    <section id="hero">
+      <div class="hero-grid-bg"></div>
+      <div class="hero-glow-green"></div>
+      <div class="hero-glow-blue"></div>
+
+      <div class="hero-inner">
+        <div class="hero-left">
+          <div class="hero-eyebrow">
+            <span class="eyebrow-dot"></span>
+            Code sharing, evolved
+          </div>
+
+          <h1>
+            Share code<br>
+            that stays<br>
+            <em>alive</em>
+          </h1>
+
+          <p class="hero-sub">
+            Paste any snippet. Get a <strong>permanent link</strong> in seconds.<br>
+            Syntax-highlighted, image-ready, shareable — <strong>zero login required.</strong>
+          </p>
+
+          <div class="hero-actions">
+            <a href="/editor" class="btn-primary" target="_blank" rel="noopener">
+              <span class="btn-icon">&#8594;</span>
+              Start sharing free
+            </a>
+            <a href="/waitlist" class="btn-outline-collab" target="_blank" rel="noopener">
+              <span class="collab-live-dot"></span>
+              Join Room Waitlist
+            </a>
+          </div>
+
+          <div class="hero-stats">
+            <div class="stat">
+              <span class="stat-num">30+</span>
+              <span class="stat-label">Languages</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <span class="stat-num">instant</span>
+              <span class="stat-label">No signup</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+              <span class="stat-num">free</span>
+              <span class="stat-label">Always</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <!-- Floating editor mockup -->
+          <div class="editor-float" id="editorFloat">
+            <div class="editor-titlebar">
+              <div class="editor-dots">
+                <span class="edot red"></span>
+                <span class="edot yellow"></span>
+                <span class="edot green"></span>
+              </div>
+              <div class="editor-tabs">
+                <span class="etab">utils.py</span>
+                <span class="etab active">snippet_8fx3.js</span>
+              </div>
+              <div class="editor-lang-badge">
+                <span class="lang-dot-green"></span> JavaScript
+              </div>
+            </div>
+
+            <div class="editor-body">
+              <div class="editor-gutter">
+                <span>1</span><span>2</span><span>3</span><span>4</span>
+                <span>5</span><span>6</span><span>7</span><span>8</span>
+                <span class="gline-active">9</span><span>10</span><span>11</span>
+              </div>
+              <div class="editor-code">
+                <div class="cl"><span class="cm">// auto-detected: JavaScript</span></div>
+                <div class="cl"><span class="kw">async function</span> <span class="fn">fetchUser</span><span class="op">(</span><span class="va">id</span><span class="op">) {</span></div>
+                <div class="cl">  <span class="kw">const</span> <span class="va">res</span> <span class="op">=</span> <span class="kw">await</span> <span class="fn">fetch</span><span class="op">(</span></div>
+                <div class="cl">    <span class="st">`/api/users/</span><span class="op">${</span><span class="va">id</span><span class="op">}</span><span class="st">`</span></div>
+                <div class="cl">  <span class="op">);</span></div>
+                <div class="cl">  <span class="kw">if</span> <span class="op">(!</span><span class="va">res</span><span class="op">.</span><span class="fn">ok</span><span class="op">)</span> <span class="kw">throw new</span> <span class="fn">Error</span><span class="op">(</span><span class="st">'Not found'</span><span class="op">);</span></div>
+                <div class="cl">  <span class="kw">return</span> <span class="va">res</span><span class="op">.</span><span class="fn">json</span><span class="op">();</span></div>
+                <div class="cl"><span class="op">}</span></div>
+                <div class="cl hl-line"><span class="fn">fetchUser</span><span class="op">(</span><span class="nu">42</span><span class="op">).</span><span class="fn">then</span><span class="op">(</span><span class="va">console</span><span class="op">.</span><span class="va">log</span><span class="op">);</span><span class="cursor"></span></div>
+                <div class="cl"></div>
+                <div class="cl"></div>
+              </div>
+            </div>
+
+            <!-- Share bar on editor -->
+            <div class="editor-sharebar">
+              <span class="sharebar-label">link</span>
+              <span class="sharebar-url">codealive.onrender.com/8fx3</span>
+              <button class="sharebar-copy">copy ↗</button>
+            </div>
+          </div>
+
+          <!-- Floating badges around editor -->
+          <div class="float-badge badge-top-right">
+            <span class="badge-icon">⚡</span> Instant link
+          </div>
+          <div class="float-badge badge-bottom-left">
+            <span class="badge-dot-green"></span> 8fx3 shared just now
+          </div>
+        </div>
+      </div>
+
+      <!-- Scroll nudge -->
+      <div class="scroll-nudge">
+        <span>scroll to explore</span>
+        <div class="scroll-arrow"></div>
+      </div>
+    </section>
+
+    <!-- ── TICKER / SOCIAL PROOF ────────────────────────────────────── -->
+    <div class="ticker-wrap">
+      <div class="ticker-track">
+        <span class="tk">Python</span><span class="tk-dot">·</span>
+        <span class="tk">JavaScript</span><span class="tk-dot">·</span>
+        <span class="tk">TypeScript</span><span class="tk-dot">·</span>
+        <span class="tk">Rust</span><span class="tk-dot">·</span>
+        <span class="tk">Go</span><span class="tk-dot">·</span>
+        <span class="tk">Java</span><span class="tk-dot">·</span>
+        <span class="tk">C++</span><span class="tk-dot">·</span>
+        <span class="tk">SQL</span><span class="tk-dot">·</span>
+        <span class="tk">Bash</span><span class="tk-dot">·</span>
+        <span class="tk">Kotlin</span><span class="tk-dot">·</span>
+        <span class="tk">Swift</span><span class="tk-dot">·</span>
+        <span class="tk">Ruby</span><span class="tk-dot">·</span>
+        <span class="tk">PHP</span><span class="tk-dot">·</span>
+        <span class="tk">Dart</span><span class="tk-dot">·</span>
+        <span class="tk">Scala</span><span class="tk-dot">·</span>
+        <span class="tk">YAML</span><span class="tk-dot">·</span>
+        <span class="tk">JSON</span><span class="tk-dot">·</span>
+        <span class="tk">Solidity</span><span class="tk-dot">·</span>
+        <!-- duplicate for seamless loop -->
+        <span class="tk">Python</span><span class="tk-dot">·</span>
+        <span class="tk">JavaScript</span><span class="tk-dot">·</span>
+        <span class="tk">TypeScript</span><span class="tk-dot">·</span>
+        <span class="tk">Rust</span><span class="tk-dot">·</span>
+        <span class="tk">Go</span><span class="tk-dot">·</span>
+        <span class="tk">Java</span><span class="tk-dot">·</span>
+        <span class="tk">C++</span><span class="tk-dot">·</span>
+        <span class="tk">SQL</span><span class="tk-dot">·</span>
+        <span class="tk">Bash</span><span class="tk-dot">·</span>
+        <span class="tk">Kotlin</span><span class="tk-dot">·</span>
+        <span class="tk">Swift</span><span class="tk-dot">·</span>
+        <span class="tk">Ruby</span><span class="tk-dot">·</span>
+      </div>
+    </div>
+
+    <!-- ── HOW IT WORKS ─────────────────────────────────────────────── -->
+    <section id="how-it-works" class="section">
+      <div class="section-inner">
+        <div class="section-label">// how it works</div>
+        <h2 class="section-title">Three steps.<br><em>Ten seconds.</em></h2>
+
+        <div class="steps-grid">
+          <div class="step-card" data-step="01">
+            <div class="step-num">01</div>
+            <div class="step-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect x="3" y="5" width="22" height="18" rx="2" stroke="currentColor" stroke-width="1.2"/>
+                <line x1="8" y1="10" x2="20" y2="10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+                <line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Paste your code</h3>
+            <p>Drop any snippet into the editor. No formatting, no cleanup needed. We handle it.</p>
+          </div>
+
+          <div class="step-arrow">→</div>
+
+          <div class="step-card" data-step="02">
+            <div class="step-num">02</div>
+            <div class="step-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <circle cx="14" cy="14" r="5" stroke="currentColor" stroke-width="1.2"/>
+                <path d="M14 3v3M14 22v3M3 14h3M22 14h3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Auto-detect language</h3>
+            <p>Language detected instantly — 30+ languages. Prism syntax highlighting applied automatically.</p>
+          </div>
+
+          <div class="step-arrow">→</div>
+
+          <div class="step-card" data-step="03">
+            <div class="step-num">03</div>
+            <div class="step-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <path d="M18 8l6 6-6 6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 14h20" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <h3>Share the link</h3>
+            <p>Hit share. Get a short URL instantly. Send it anywhere — Slack, PRs, Discord, email.</p>
+          </div>
+        </div>
+
+        <div class="steps-cta">
+          <a href="/editor" class="btn-primary" target="_blank" rel="noopener">Try it now — it's free</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FEATURES ─────────────────────────────────────────────────── -->
+    <section id="features" class="section section-alt">
+      <div class="section-inner">
+        <div class="section-label">// features</div>
+        <h2 class="section-title">Everything a dev<br><em>actually needs.</em></h2>
+
+        <div class="features-grid">
+
+          <div class="feat-card feat-large">
+            <div class="feat-tag">syntax</div>
+            <h3>30+ languages,<br>auto-detected</h3>
+            <p>Paste Python, JS, Rust, Go, SQL, YAML — we detect and highlight without you lifting a finger.</p>
+            <div class="feat-lang-chips">
+              <span>Python</span><span>TypeScript</span><span>Rust</span>
+              <span>Go</span><span>SQL</span><span>Bash</span><span>+24</span>
+            </div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-tag">sharing</div>
+            <h3>Permanent short URLs</h3>
+            <p>Every snippet gets a short, permanent link. Random slug or pick your own custom one.</p>
+            <div class="feat-url-demo">
+              <span class="url-base">codealive.onrender.com/</span><span class="url-slug">my-bug</span>
+            </div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-tag">highlight</div>
+            <h3>Line highlighting</h3>
+            <p>Select lines, highlight them, share. Your recipients see exactly the lines you meant.</p>
+            <div class="feat-highlight-demo">
+              <div class="fhd-line"></div>
+              <div class="fhd-line fhd-hl"></div>
+              <div class="fhd-line fhd-hl"></div>
+              <div class="fhd-line"></div>
+              <div class="fhd-line"></div>
+            </div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-tag">images</div>
+            <h3>Code + images together <span class="tag-soon">Coming Soon</span></h3>
+            <p>Attach screenshots, diagrams, or error images inline. They travel with your snippet URL.</p>
+            <div class="feat-img-demo">
+              <span class="img-pill">📎 screenshot.png</span>
+              <span class="img-pill">📎 error_trace.png</span>
+            </div>
+          </div>
+
+          <div class="feat-card">
+            <div class="feat-tag">detection</div>
+            <h3>Multi-language support <span class="tag-soon">In Dev</span></h3>
+            <p>Automatic detection of multiple languages in a single file. Perfect for polyglot scripts.</p>
+            <div class="feat-lang-chips">
+              <span>HTML+JS</span><span>JSX</span><span>Markdown</span>
+            </div>
+          </div>
+
+          <div class="feat-card feat-no-login">
+            <div class="feat-tag">zero friction</div>
+            <h3>No login.<br>No account.<br>No nonsense.</h3>
+            <p>Open the editor, paste, share. That's the whole flow.</p>
+          </div>
+
+          <div class="feat-card feat-custom-url">
+            <div class="feat-tag">custom</div>
+            <h3>Custom slug URLs</h3>
+            <p>Name your snippet anything you want. <span class="accent">/my-auth-bug</span>, <span class="accent">/demo-api</span> — yours to keep.</p>
+          </div>
+
+        </div>
+
+        <div class="features-cta reveal">
+          <a href="/editor" class="btn-primary" target="_blank" rel="noopener">
+            <span class="btn-icon">&#8594;</span>
+            Open the Editor
+          </a>
+          <a href="/waitlist" class="btn-outline-collab" target="_blank" rel="noopener">
+             Join Waitlist
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── COLLABORATION / WAITLIST SECTION ─────────────────────────── -->
+    <section id="collab" class="section section-collab">
+      <div class="collab-glow"></div>
+      <div class="section-inner">
+
+        <div class="collab-grid">
+          <div class="collab-left">
+            <div class="section-label">// coming soon</div>
+            <h2 class="section-title">
+              Real-time<br>
+              <em>collaborative</em><br>
+              rooms.
+            </h2>
+            <p class="collab-sub">
+              Create a room. Share the link. Everyone who joins sees exactly what you type — in real time. Like a Google Doc, but for code.
+            </p>
+
+            <ul class="collab-features">
+              <li>
+                <span class="cf-dot"></span>
+                Live cursors — see who's editing where
+              </li>
+              <li>
+                <span class="cf-dot"></span>
+                Persistent room URLs — rejoin anytime
+              </li>
+              <li>
+                <span class="cf-dot"></span>
+                Works with all 30+ languages
+              </li>
+              <li>
+                <span class="cf-dot"></span>
+                Verified hosting — sign up required to create rooms
+              </li>
+            </ul>
+
+            <div class="collab-actions">
+              <a href="/waitlist" class="btn-primary btn-primary-blue" target="_blank" rel="noopener">
+                <span class="btn-icon">🚀</span>
+                Join the waitlist
+              </a>
+              <span class="collab-hint">We'll email you when rooms go live</span>
+            </div>
+          </div>
+
+          <div class="collab-right">
+            <!-- Room mockup -->
+            <div class="room-mockup">
+              <div class="room-header">
+                <div class="room-title">
+                  <span class="room-live-dot"></span>
+                  room: <span class="room-name">debug-session</span>
+                </div>
+                <div class="room-participants">
+                  <div class="rp-avatar rp-you">YO</div>
+                  <div class="rp-avatar rp-a">AK</div>
+                  <div class="rp-avatar rp-b">MR</div>
+                  <span class="rp-count">3 online</span>
+                </div>
+              </div>
+
+              <div class="room-editor">
+                <div class="room-gutter">
+                  <span>1</span><span>2</span><span>3</span><span>4</span>
+                  <span>5</span><span>6</span><span>7</span>
+                </div>
+                <div class="room-code">
+                  <div class="rcl"><span class="kw">def</span> <span class="fn">binary_search</span><span class="op">(</span><span class="va">arr</span><span class="op">,</span> <span class="va">target</span><span class="op">):</span></div>
+                  <div class="rcl">  <span class="va">lo</span><span class="op">,</span> <span class="va">hi</span> <span class="op">=</span> <span class="nu">0</span><span class="op">,</span> <span class="fn">len</span><span class="op">(</span><span class="va">arr</span><span class="op">) -</span> <span class="nu">1</span></div>
+                  <div class="rcl">  <span class="kw">while</span> <span class="va">lo</span> <span class="op">&lt;=</span> <span class="va">hi</span><span class="op">:</span></div>
+                  <div class="rcl rcl-cursor-a">    <span class="va">mid</span> <span class="op">=</span> <span class="op">(</span><span class="va">lo</span> <span class="op">+</span> <span class="va">hi</span><span class="op">)</span> <span class="op">//</span> <span class="nu">2</span><span class="cursor-a"></span></div>
+                  <div class="rcl">    <span class="kw">if</span> <span class="va">arr</span><span class="op">[</span><span class="va">mid</span><span class="op">] ==</span> <span class="va">target</span><span class="op">:</span></div>
+                  <div class="rcl">      <span class="kw">return</span> <span class="va">mid</span></div>
+                  <div class="rcl rcl-cursor-b">    <span class="kw">elif</span> <span class="va">arr</span><span class="op">[</span><span class="va">mid</span><span class="op">] &lt;</span> <span class="va">target</span><span class="op">:</span><span class="cursor-b"></span></div>
+                </div>
+              </div>
+
+              <div class="room-status-bar">
+                <span class="rs-lang"><span class="lang-dot-green"></span> Python</span>
+                <span class="rs-msg">AK is typing…</span>
+              </div>
+            </div>
+
+            <div class="room-create-cta">
+              <a href="/waitlist" class="btn-create-room" target="_blank" rel="noopener">
+                Create a Room →
+              </a>
+              <span class="room-cta-note">Launches soon — join waitlist to get early access</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── USE CASES ────────────────────────────────────────────────── -->
+    <section id="use-cases" class="section">
+      <div class="section-inner">
+        <div class="section-label">// who uses it</div>
+        <h2 class="section-title">Built for every<br><em>code conversation.</em></h2>
+
+        <div class="usecases-grid">
+          <div class="uc-card">
+            <div class="uc-icon">🔍</div>
+            <h4>Code reviews</h4>
+            <p>Share a snippet with line highlights pointing exactly to the issue. No more "line 42" confusion.</p>
+          </div>
+          <div class="uc-card">
+            <div class="uc-icon">🐛</div>
+            <h4>Bug reports</h4>
+            <p>Paste the bug, attach a screenshot of the error, send the link. Full context in one URL.</p>
+          </div>
+          <div class="uc-card">
+            <div class="uc-icon">🎓</div>
+            <h4>Teaching & tutoring</h4>
+            <p>Share solution snippets with students. Highlight the key lines. No IDE setup needed on their end.</p>
+          </div>
+          <div class="uc-card">
+            <div class="uc-icon">💬</div>
+            <h4>Slack / Discord</h4>
+            <p>Stop pasting raw code into chat. Drop a CodeAlive link — clean, highlighted, permanent.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FINAL CTA ─────────────────────────────────────────────────── -->
+    <section id="final-cta" class="section section-cta">
+      <div class="cta-glow"></div>
+      <div class="section-inner cta-inner">
+        <h2 class="cta-title">
+          Stop pasting code<br>into chat. <em>Share it right.</em>
+        </h2>
+        <p class="cta-sub">No login. No setup. No friction. Just code and a link.</p>
+        <div class="cta-actions">
+          <a href="/editor" class="btn-primary btn-large" target="_blank" rel="noopener">
+            Open the Editor — it's free →
+          </a>
+          <a href="/waitlist" class="btn-outline-lg" target="_blank" rel="noopener">
+            Join Room Waitlist
+          </a>
+        </div>
+        <p class="cta-note">Used by developers in 20+ countries · Always free</p>
+      </div>
+    </section>
+
+    <!-- ── FOOTER ───────────────────────────────────────────────────── -->
+    <footer id="footer">
+      <div class="footer-inner">
+        <div class="footer-logo">
+          <span class="logo-pulse-sm"></span>
+          Code<span class="logo-dim">Alive</span>
+        </div>
+        <div class="footer-links">
+          <a href="/editor" target="_blank" rel="noopener">Editor</a>
+          <a href="/waitlist" target="_blank" rel="noopener">Waitlist</a>
+          <a href="#features">Features</a>
+        </div>
+        <div class="footer-note">
+          Built with FastAPI · Redis · MongoDB · Deployed on Render
+        </div>
+      </div>
+    </footer>
+
+    <script src="/static/home.js"></script>
+  </body>
+</html>

@@ -66,6 +66,15 @@ function escapeHtml(str) {
  * @param {string} code     — text to highlight
  * @param {string} language — Prism language key (e.g. "python", "text")
  */
+
+function injectImageLinks(html) {
+  return html.replace(
+    /\[image:(img_[a-zA-Z0-9]+)\]/g,
+    (_, image_id) =>
+      `<a href="/image/${image_id}" target="_blank" rel="noopener noreferrer" class="image-placeholder-btn">📎 View Image</a>`
+  );
+}
+
 export function mirrorToHighlight(code, language) {
   console.log("🔥 mirrorToHighlight input:", {
     code,
@@ -120,6 +129,7 @@ export function mirrorToHighlight(code, language) {
     html = escapeHtml(code);
   }
 
+  html = injectImageLinks(html);
   codeHighlighted.innerHTML = html + "\n";
   syncHighlightScroll();
 }

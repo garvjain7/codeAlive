@@ -2,6 +2,8 @@ fastapi==0.110.0
 uvicorn==0.27.1
 jinja2==3.0.3
 redis==5.0.1
-python-multipart==0.0.9
 python-dotenv==1.0.1
 codelang_detect
+pymongo[srv]
+Pillow
+python-multipart==0.0.9

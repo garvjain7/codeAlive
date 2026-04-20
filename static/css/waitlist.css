@@ -1,0 +1,182 @@
+/* ═══════════════════════════════════════════════════════════════
+   CodeAlive — waitlist.css
+   Serves: templates/waitlist.html
+   Aesthetic: Premium, Centered, High-Conversion
+   Dependencies: home.css (for tokens and base resets)
+   ═══════════════════════════════════════════════════════════════ */
+
+#waitlist-hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 100px 24px;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.waitlist-container {
+  max-width: 680px;
+  width: 100%;
+  position: relative;
+  z-index: 10;
+}
+
+#waitlist-hero h1 {
+  font-size: 64px;
+  margin-bottom: 24px;
+  animation-delay: 0.1s;
+}
+
+.waitlist-sub {
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--text2);
+  margin-bottom: 48px;
+  animation-delay: 0.2s;
+}
+
+/* ── FORM STYLING ────────────────────────────────────────────── */
+.waitlist-form {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  padding: 8px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.3s, box-shadow 0.3s;
+  animation: fadeUp 0.65s 0.3s ease both;
+}
+
+.waitlist-form:focus-within {
+  border-color: var(--green-glow);
+  box-shadow: 0 20px 50px rgba(63, 224, 160, 0.08);
+}
+
+.input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.waitlist-form input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: 14px 20px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 14px;
+  outline: none;
+}
+
+.waitlist-form input::placeholder {
+  color: var(--text3);
+}
+
+.waitlist-form button {
+  white-space: nowrap;
+  padding: 12px 28px;
+}
+
+.form-note {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 4px;
+  letter-spacing: 0.02em;
+}
+
+.form-footer-actions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-link-sm {
+  font-size: 12px;
+  color: var(--text3);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.btn-link-sm:hover {
+  color: var(--text2);
+}
+
+/* ── STATES ──────────────────────────────────────────────────── */
+.hidden {
+  display: none !important;
+}
+
+.success-state {
+  animation: fadeUp 0.5s ease both;
+  padding: 40px 0;
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.success-state h3 {
+  font-family: var(--serif);
+  font-size: 32px;
+  margin-bottom: 12px;
+  color: var(--text);
+}
+
+.success-state p {
+  color: var(--text2);
+  margin-bottom: 32px;
+}
+
+.error-message {
+  color: var(--amber);
+  font-size: 12px;
+  margin-top: 16px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  background: rgba(251, 191, 36, 0.05);
+  padding: 10px;
+  border-radius: var(--radius);
+}
+
+/* ── LOADER ──────────────────────────────────────────────────── */
+.loader {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(8, 10, 14, 0.2);
+  border-top-color: #080a0e;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #waitlist-hero h1 {
+    font-size: 48px;
+  }
+}
+
+@media (max-width: 580px) {
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .waitlist-form button {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  #waitlist-hero h1 {
+    font-size: 38px;
+  }
+}
