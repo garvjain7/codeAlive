@@ -14,7 +14,7 @@
 - **Zero friction sharing** — paste code, hit share, get a link. No account, no configuration, no expiration.
 - **Custom or random URLs** — choose your own slug (e.g. `codealive.onrender.com/my-bug`) or let the system generate a short unique one.
 - **Language detection** — automatically detects the programming language as you type, with a 1s debounce and instant detection on paste.
-- **Syntax highlighting** — powered by Prism.js with a custom dark theme tuned for CodeAlive's palette. Supports 30+ languages.
+- **Syntax highlighting** — powered by **CodeMirror 6** with a custom dark theme tuned for CodeAlive's palette. Supports 30+ dynamically loaded languages.
 - **Copy to clipboard** — one-click copy of the code content.
 - **Download** — download the snippet as a file with the correct extension based on detected language.
 
@@ -23,8 +23,8 @@
 - **Email Notifications** — Receive confirmation and launch updates via automated email system.
 
 ### Advanced
-- **Line Highlighting** — Select any lines to mark them with colored bands that travel with the link.
-- **Code + Images** — Attach screenshots or error logs inline with your code snippets (Coming Soon).
+- **Line Highlighting** — Select any lines to mark them with colored bands that travel with the link. Supports multiple distinct highlight colors in a single snippet.
+- **Interactive Code Widgets** — Attach screenshots or error logs inline with your code snippets using CodeMirror 6 `WidgetTypes` (e.g., `[image:xyz]`).
 - **Multi-language Detection** — Support for multiple languages in a single shareable file (In Dev).
 
 ---
@@ -33,12 +33,12 @@
 
 | Layer | Technology |
 |---|---|
-| Frontend | HTML5, Vanilla CSS, JavaScript (ES6+) |
+| Frontend | HTML5, Vanilla CSS, JavaScript (ES Modules / ESM) |
+| Code Editor | **CodeMirror 6** (Loaded via `esm.sh`, no build step required) |
 | Backend | Python 3.10+, FastAPI, Uvicorn |
 | In-Memory Cache | Redis (Snippet storage) |
 | Persistent Database | MongoDB Atlas (Images & Waitlist) |
 | Email System | Gmail SMTP (smtplib) |
-| Syntax Highlighting | Prism.js |
 | Fonts | JetBrains Mono, Fraunces (Google Fonts) |
 | Hosting | Render |
 
@@ -60,8 +60,9 @@ codealive/
 │   ├── home.html           # Marketing Landing Page
 │   └── waitlist.html       # Waitlist Signup Page
 └── static/
-    ├── css/                # Modular stylesheets (home, waitlist)
-    └── js/                 # Client-side logic (main, home, waitlist)
+    ├── css/                # Modular stylesheets (style.css, home.css)
+    ├── *.js                # Client-side ESM logic (main, editor, detection, codec)
+    └── images/             # Static assets
 ```
 
 ---
