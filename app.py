@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Form, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -39,7 +39,7 @@ app.mount(
 _HIGHLIGHTS_RE = re.compile(r"^L\d+(-L\d+)?(,L\d+(-L\d+)?)*$", re.IGNORECASE)
 
 # Reserved path names that must never be treated as snippet code_ids
-_RESERVED = frozenset({"editor", "waitlist", "static", "s", "new"})
+_RESERVED = frozenset({"editor", "waitlist", "static", "s", "new", "robots.txt", "sitemap.xml"})
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -120,6 +120,18 @@ async def new_snippet():
 async def waitlist_page(request: Request):
     """Waitlist landing page."""
     return templates.TemplateResponse("waitlist.html", {"request": request})
+
+
+@app.get("/robots.txt")
+async def serve_robots_txt():
+    """Serve robots.txt from root."""
+    return FileResponse(os.path.join(BASE_DIR, "robots.txt"))
+
+
+@app.get("/sitemap.xml")
+async def serve_sitemap_xml():
+    """Serve sitemap.xml from root."""
+    return FileResponse(os.path.join(BASE_DIR, "sitemap.xml"))
 
 
 @app.post("/waitlist")
