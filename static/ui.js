@@ -101,5 +101,5 @@ ewDismiss.addEventListener("click", () => {
 });
 
 codeArea.addEventListener("input", () => {
-  if (window.location.pathname !== "/") showEditWarning();
+  if (window.location.pathname !== "/editor") showEditWarning();
 });

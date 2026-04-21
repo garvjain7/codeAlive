@@ -73,7 +73,7 @@ initEditor(() => detection.language);
 // ── 21. UNSAVED CHANGES WARNING ───────────────────────────────────────────────
 
 window.addEventListener("beforeunload", (e) => {
-  if (window.location.pathname === "/" && codeArea.value.trim().length > 0) {
+  if (window.location.pathname === "/editor" && codeArea.value.trim().length > 0) {
     e.preventDefault();
     e.returnValue = "";
   }

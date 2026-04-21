@@ -160,9 +160,8 @@ function overlapLen(h, startLine, endLine) {
 // ── Text-selection handler ────────────────────────────────────────────────────
 
 function handleTextSelection() {
-  // Popup only appears on '/' (editor mode). On shared URLs this stays hidden.
-  // if (window.location.pathname !== "/") return;
-  if (window.location.pathname.length > 1) return;
+  // Popup only appears on '/editor' (editor mode). On shared URLs this stays hidden.
+  if (window.location.pathname !== "/editor") return;
 
   const { selectionStart, selectionEnd } = codeArea;
   if (selectionStart === selectionEnd) {

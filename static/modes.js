@@ -24,7 +24,7 @@ export function enterViewMode() {
 }
 
 export function enterHomeMode() {
-  history.pushState({}, "", "/");
+  history.pushState({}, "", "/editor");
 
   codeArea.value = "";
   codeArea.readOnly = false;

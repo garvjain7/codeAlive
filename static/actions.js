@@ -186,7 +186,14 @@ downloadBtn.addEventListener("click", () => {
     detection.language && detection.language !== "text"
       ? detection.language
       : "txt";
-  const slug = window.location.pathname.replace(/^\//, "") || "code";
+  const path = window.location.pathname;
+  let slug = "code";
+  if (path.startsWith("/s/")) {
+    slug = path.split("/").pop();
+  } else if (path === "/editor") {
+    slug = "new-snippet";
+  }
+
   const blob = new Blob([code], { type: "text/plain" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");

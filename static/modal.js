@@ -185,8 +185,8 @@ if (howItWorksBtn) {
 // ===============================
 
 export function triggerHighlightAfterWelcome() {
-  // Only show on homepage
-  if (window.location.pathname !== "/") return;
+  // Only show on editor
+  if (window.location.pathname !== "/editor") return;
 
   // Don't show again if already seen
   if (localStorage.getItem("seenHighlightGuide") === "true") return;
