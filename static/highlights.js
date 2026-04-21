@@ -1,32 +1,48 @@
-// ── HIGHLIGHTS ────────────────────────────────────────────────────────────────
-//
-//  Owns:
-//    • highlights[]  — the canonical list of { id, start, end } objects
-//    • pendingSelection — the selection currently shown in the popup
-//    • parse / serialize helpers
-//    • render (bands) + scroll sync
-//    • popup show / hide
-//    • CRUD: add / remove / update
-//    • text-selection handler wired to codeArea
+// ── HIGHLIGHTS (CodeMirror 6) ───────────────────────────────────────────────────
+import {
+  Decoration,
+  EditorView,
+} from "https://esm.sh/@codemirror/view";
+import {
+  StateField,
+  StateEffect,
+} from "https://esm.sh/@codemirror/state";
 
 import {
-  codeArea,
-  highlightBands,
   highlightPopup,
   popupHighlightBtn,
   popupRemoveBtn,
+  editorContainer,
 } from "./dom.js";
 
-import { COLOR_POOL, LINE_HEIGHT, PADDING_TOP } from "./constants.js";
+import { COLOR_POOL } from "./constants.js";
+
+// ── Effects & Fields ──────────────────────────────────────────────────────────
+
+const setHighlightsEffect = StateEffect.define();
+
+export const highlightsField = StateField.define({
+  create() {
+    return Decoration.none;
+  },
+  update(highlights, tr) {
+    for (let e of tr.effects) {
+      if (e.is(setHighlightsEffect)) {
+        highlights = e.value;
+      }
+    }
+    return highlights;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
 
 // ── State ─────────────────────────────────────────────────────────────────────
 
-// highlights: Array of { id, start, end } where start/end are 1-based line numbers.
+// Internal tracking of highlight ranges for serialization
+// Array of { id, start, end } where start/end are 1-based line numbers.
 export let highlights = [];
 let pendingSelection = null; // { startLine, endLine, targetHighlight }
 let hlIdCounter = 0;
-
-// ── ID helper ─────────────────────────────────────────────────────────────────
 
 function nextHlId() {
   return `hl_${Date.now()}_${hlIdCounter++}`;
@@ -34,7 +50,6 @@ function nextHlId() {
 
 // ── Serialize / parse ─────────────────────────────────────────────────────────
 
-// "L6-L14,L32-L49" → [{id,start,end}, ...]
 export function parseHighlights(str) {
   if (!str || !str.trim()) return [];
   return str
@@ -50,7 +65,6 @@ export function parseHighlights(str) {
     .filter(Boolean);
 }
 
-// [{ start, end }, ...] → "L6-L14,L32-L49"
 export function serializeHighlights(hls) {
   if (!hls.length) return "";
   return [...hls]
@@ -59,30 +73,35 @@ export function serializeHighlights(hls) {
     .join(",");
 }
 
-// ── Scroll sync ───────────────────────────────────────────────────────────────
-
-export function syncHighlightBandsScroll() {
-  // translate scrollTop so bands line up with code text.
-  highlightBands.style.transform = `translateY(-${codeArea.scrollTop}px)`;
-}
-
 // ── Render ────────────────────────────────────────────────────────────────────
 
-export function renderHighlights() {
-  highlightBands.innerHTML = "";
+export async function renderHighlights() {
+  const { view } = await import("./dom.js");
+  if (!view) return;
 
-  highlights.forEach((h, i) => {
-    const color = COLOR_POOL[i % COLOR_POOL.length];
-    const band = document.createElement("div");
-    band.className = "highlight-band";
-    band.style.top = `${PADDING_TOP + (h.start - 1) * LINE_HEIGHT}px`;
-    band.style.height = `${(h.end - h.start + 1) * LINE_HEIGHT}px`;
-    band.style.background = color.bg;
-    band.style.borderLeft = `3px solid ${color.border}`;
-    highlightBands.appendChild(band);
+  const decorations = [];
+  highlights.forEach((h, idx) => {
+    const color = COLOR_POOL[idx % COLOR_POOL.length];
+    const deco = Decoration.line({
+      attributes: { 
+        class: "cm-line-highlight",
+        style: `background-color: ${color.bg} !important; border-left: 3px solid ${color.border} !important;`
+      }
+    });
+
+    for (let i = h.start; i <= h.end; i++) {
+      try {
+        const line = view.state.doc.line(i);
+        decorations.push(deco.range(line.from));
+      } catch (e) {
+        // Line might not exist yet
+      }
+    }
   });
 
-  syncHighlightBandsScroll();
+  view.dispatch({
+    effects: setHighlightsEffect.of(Decoration.set(decorations, true)),
+  });
 }
 
 // ── Popup ─────────────────────────────────────────────────────────────────────
@@ -92,19 +111,20 @@ export function hideHighlightPopup() {
   pendingSelection = null;
 }
 
-export function showHighlightPopup(startLine, endLine, targetHighlight) {
-  const rect = codeArea.getBoundingClientRect();
+export async function showHighlightPopup(startLine, endLine, targetHighlight) {
+  const { view } = await import("./dom.js");
+  if (!view) return;
 
-  const rawTop =
-    rect.top + PADDING_TOP + endLine * LINE_HEIGHT - codeArea.scrollTop + 6;
-  const top = Math.min(rawTop, window.innerHeight - 52);
+  const rect = editorContainer.getBoundingClientRect();
+  
+  // Get position of the last line in selection
+  const line = view.state.doc.line(endLine);
+  const coords = view.coordsAtPos(line.from);
+  
+  if (!coords) return;
 
-  const lnWidth = parseInt(
-    getComputedStyle(document.documentElement).getPropertyValue("--ln-width") ||
-      "52",
-    10,
-  );
-  const left = rect.left + lnWidth + 12;
+  const top = Math.min(coords.bottom + 6, window.innerHeight - 52);
+  const left = coords.left + 12;
 
   highlightPopup.style.top = `${top}px`;
   highlightPopup.style.left = `${left}px`;
@@ -125,18 +145,14 @@ export function showHighlightPopup(startLine, endLine, targetHighlight) {
 
 // ── CRUD ──────────────────────────────────────────────────────────────────────
 
-function onHighlightsChanged() {
-  renderHighlights();
-}
-
 export function addHighlight(startLine, endLine) {
   highlights.push({ id: nextHlId(), start: startLine, end: endLine });
-  onHighlightsChanged();
+  renderHighlights();
 }
 
 export function removeHighlight(id) {
   highlights = highlights.filter((h) => h.id !== id);
-  onHighlightsChanged();
+  renderHighlights();
 }
 
 export function updateHighlight(id, startLine, endLine) {
@@ -144,110 +160,72 @@ export function updateHighlight(id, startLine, endLine) {
   if (!h) return;
   h.start = startLine;
   h.end = endLine;
-  onHighlightsChanged();
+  renderHighlights();
 }
 
-// ── Overlap helper ────────────────────────────────────────────────────────────
+// ── Selection Handler ─────────────────────────────────────────────────────────
 
-function overlapLen(h, startLine, endLine) {
-  // Inclusive overlap length in lines.
-  const a = Math.max(h.start, startLine);
-  const b = Math.min(h.end, endLine);
-  if (b < a) return 0;
-  return b - a + 1;
-}
-
-// ── Text-selection handler ────────────────────────────────────────────────────
-
-function handleTextSelection() {
-  // Popup only appears on '/editor' (editor mode). On shared URLs this stays hidden.
+export async function handleTextSelection() {
   if (window.location.pathname !== "/editor") return;
 
-  const { selectionStart, selectionEnd } = codeArea;
-  if (selectionStart === selectionEnd) {
+  const { view } = await import("./dom.js");
+  if (!view) return;
+
+  const { from, to } = view.state.selection.main;
+  if (from === to) {
     hideHighlightPopup();
     return;
   }
 
-  const textBefore   = codeArea.value.substring(0, selectionStart);
-  const textSelected = codeArea.value.substring(selectionStart, selectionEnd);
+  const startLine = view.state.doc.lineAt(from).number;
+  const endLine = view.state.doc.lineAt(to).number;
 
-  const startLine = textBefore.split("\n").length;
-  const endLine   = startLine + textSelected.split("\n").length - 1;
-
-  // Find all highlights that overlap this selection.
-  // If multiple overlaps exist, edit the one with the largest overlap length.
-  const overlappingHighlights = highlights.filter(
-    (h) => !(h.end < startLine || h.start > endLine),
+  const overlapping = highlights.filter(
+    (h) => !(h.end < startLine || h.start > endLine)
   );
 
   let target = null;
-  if (overlappingHighlights.length > 0) {
-    // Prefer highlights that contain the selection start line.
-    // This makes resizing deterministic when multiple highlights overlap
-    // on common lines.
-    const containingStart = overlappingHighlights.filter(
-      (h) => h.start <= startLine && h.end >= startLine,
-    );
-
-    const pool =
-      containingStart.length > 0 ? containingStart : overlappingHighlights;
-    pool.sort((a, b) => {
-      const da = overlapLen(a, startLine, endLine);
-      const db = overlapLen(b, startLine, endLine);
-      if (db !== da) return db - da; // larger overlap first
-      // Tie-break: choose the one with later start (more specific)
-      return b.start - a.start;
+  if (overlapping.length > 0) {
+    overlapping.sort((a, b) => {
+      const overlapA = Math.min(a.end, endLine) - Math.max(a.start, startLine);
+      const overlapB = Math.min(b.end, endLine) - Math.max(b.start, startLine);
+      return overlapB - overlapA;
     });
-
-    target = pool[0];
+    target = overlapping[0];
   }
 
   showHighlightPopup(startLine, endLine, target);
 }
 
-// ── Event wiring ──────────────────────────────────────────────────────────────
+// ── Event Wiring (Called from main.js) ────────────────────────────────────────
 
-// Show popup after mouse selection
-codeArea.addEventListener("mouseup", handleTextSelection);
-// Show popup after keyboard selection (Shift+Arrow)
-codeArea.addEventListener("keyup", (e) => {
-  if (e.shiftKey) handleTextSelection();
-});
-
-popupHighlightBtn.addEventListener("click", () => {
-  if (!pendingSelection) return;
-  if (pendingSelection.targetHighlight) {
-    updateHighlight(
-      pendingSelection.targetHighlight.id,
-      pendingSelection.startLine,
-      pendingSelection.endLine,
-    );
-  } else {
-    addHighlight(pendingSelection.startLine, pendingSelection.endLine);
-  }
-  hideHighlightPopup();
-  codeArea.focus();
-});
-
-popupRemoveBtn.addEventListener("click", () => {
-  if (!pendingSelection || !pendingSelection.targetHighlight) return;
-  removeHighlight(pendingSelection.targetHighlight.id);
-  hideHighlightPopup();
-  codeArea.focus();
-});
-
-document.addEventListener("mousedown", (e) => {
-  if (!highlightPopup.contains(e.target) && e.target !== codeArea)
+export function initHighlights() {
+  popupHighlightBtn.addEventListener("click", async () => {
+    if (!pendingSelection) return;
+    if (pendingSelection.targetHighlight) {
+      updateHighlight(
+        pendingSelection.targetHighlight.id,
+        pendingSelection.startLine,
+        pendingSelection.endLine
+      );
+    } else {
+      addHighlight(pendingSelection.startLine, pendingSelection.endLine);
+    }
     hideHighlightPopup();
-});
+    const { view } = await import("./dom.js");
+    if (view) view.focus();
+  });
 
-// Hide popup when the user types + clean stale highlights
-codeArea.addEventListener("input", () => {
-  hideHighlightPopup();
-  const totalLines = codeArea.value.split("\n").length;
-  highlights = highlights
-    .filter((h) => h.start <= totalLines)
-    .map((h) => ({ ...h, end: Math.min(h.end, totalLines) }));
-  renderHighlights();
-});
+  popupRemoveBtn.addEventListener("click", async () => {
+    if (!pendingSelection || !pendingSelection.targetHighlight) return;
+    removeHighlight(pendingSelection.targetHighlight.id);
+    hideHighlightPopup();
+    const { view } = await import("./dom.js");
+    if (view) view.focus();
+  });
+
+  document.addEventListener("mousedown", (e) => {
+    if (!highlightPopup.contains(e.target) && !editorContainer.contains(e.target))
+      hideHighlightPopup();
+  });
+}

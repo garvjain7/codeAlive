@@ -1,18 +1,5 @@
-// ── UI HELPERS ────────────────────────────────────────────────────────────────
-//
-//  • Toast notification
-//  • Error bar
-//  • Language badge
-//  • Share bar (show / hide)
-//  • Edit warning banner
-//
-//  ── Dependency rule ──────────────────────────────────────────────────────────
-//  This module does NOT import from detection.js, editor.js, or any module
-//  that imports from those — preventing circular dependency chains.
-//  All data needed for rendering is passed explicitly via function parameters.
-
+// ── UI HELPERS (CodeMirror 6) ──────────────────────────────────────────────────
 import {
-  codeArea,
   errorBar,
   toast,
   langDot,
@@ -26,6 +13,7 @@ import {
 // ── Error bar ─────────────────────────────────────────────────────────────────
 
 export function showError(msg, duration = 4000) {
+  if (!errorBar) return;
   errorBar.textContent = msg;
   errorBar.classList.add("visible");
   setTimeout(() => errorBar.classList.remove("visible"), duration);
@@ -35,6 +23,7 @@ export function showError(msg, duration = 4000) {
 
 let toastTimer;
 export function showToast() {
+  if (!toast) return;
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
@@ -42,14 +31,9 @@ export function showToast() {
 
 // ── Language badge ────────────────────────────────────────────────────────────
 
-/**
- * Render the language badge from an explicit state snapshot.
- * Called by main.js whenever detection state changes — never reads
- * the detection object directly so there is no import dependency on detection.js.
- *
- * @param {{ status: string, language: string }} detectionState
- */
 export function updateLangBadge({ status, language }) {
+  if (!langDot || !langBadge) return;
+  
   if (status === "in-progress") {
     langDot.style.display = "block";
     langBadge.style.display = "inline-flex";
@@ -70,11 +54,13 @@ export function updateLangBadge({ status, language }) {
 // ── Share bar ─────────────────────────────────────────────────────────────────
 
 export function showShareBar(url) {
+  if (!shareUrl || !shareBar) return;
   shareUrl.value = url;
   shareBar.classList.add("visible");
 }
 
 export function hideShareBar() {
+  if (!shareBar) return;
   shareBar.classList.remove("visible");
 }
 
@@ -87,19 +73,18 @@ export function setEditWarningDismissed(val) {
 }
 
 export function showEditWarning() {
-  if (editWarningDismissed) return;
+  if (editWarningDismissed || !editWarning) return;
   editWarning.classList.add("show");
 }
 
 export function hideEditWarning() {
+  if (!editWarning) return;
   editWarning.classList.remove("show");
 }
 
-ewDismiss.addEventListener("click", () => {
-  editWarningDismissed = true;
-  hideEditWarning();
-});
-
-codeArea.addEventListener("input", () => {
-  if (window.location.pathname !== "/editor") showEditWarning();
-});
+if (ewDismiss) {
+  ewDismiss.addEventListener("click", () => {
+    editWarningDismissed = true;
+    hideEditWarning();
+  });
+}

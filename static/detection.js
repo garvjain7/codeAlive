@@ -1,29 +1,14 @@
-// ── LANGUAGE DETECTION ────────────────────────────────────────────────────────
+// ── LANGUAGE DETECTION (CodeMirror 6) ────────────────────────────────────────
 //
 //  State machine:  idle → in-progress → done
 //                                     ↘ failed
 //
 //  The Promise/resolver pattern lets the Create-Link button await the
 //  in-flight request without polling, without timers, without races.
-//
-//  ── Dependency rule ──────────────────────────────────────────────────────────
-//  This module is intentionally self-contained:
-//    • NO imports from ui.js or editor.js (prevents circular dependencies)
-//    • UI/editor reactions are triggered via the onStateChange callback,
-//      which is injected by main.js at startup via initDetection().
-//    • This module only imports from dom.js and constants.js.
 
-import { codeArea } from "./dom.js";
 import { DEBOUNCE_MS, COOLDOWN_MS, MIN_LINES, MIN_CHARS } from "./constants.js";
 
 // ── Callback registry ─────────────────────────────────────────────────────────
-//
-//  Instead of importing updateLangBadge / mirrorToHighlight directly (which
-//  would create a cycle), detection calls a single onStateChange() hook.
-//  main.js registers the hook via initDetection() before anything else runs.
-//
-//  The hook receives the current detection state snapshot so callers never
-//  need to import the detection object itself to read its state.
 
 /** @type {((state: { status: string, language: string }) => void) | null} */
 let _onStateChange = null;
@@ -54,10 +39,6 @@ export const detection = {
   _promise: null, // Promise that resolves once detection finishes
   _resolve: null, // its resolver
 
-  /**
-   * Returns a Promise that resolves to the detected language string.
-   * If already done / failed, resolves immediately.
-   */
   waitForResult() {
     if (this.status === "done" || this.status === "failed") {
       return Promise.resolve(this.language);
@@ -78,56 +59,42 @@ export const detection = {
     }
   },
 
-  /** Called when detection API returns successfully. */
   setResult(lang) {
     this.language = lang || "text";
     this.status = "done";
     this._flush(this.language);
-    notifyStateChange(); // replaces: updateLangBadge() + mirrorToHighlight()
+    notifyStateChange();
   },
 
-  /** Called on network error or timeout. */
   setFailed() {
     this.language = "text";
     this.status = "failed";
     this._flush("text");
-    notifyStateChange(); // replaces: updateLangBadge()
+    notifyStateChange();
   },
 
-  /**
-   * Full reset — use when content is completely replaced (new snippet / paste).
-   * Flushes any pending waitForResult() with "text" BEFORE nulling refs,
-   * so the Create Link button is never left permanently disabled.
-   */
   reset() {
     this._flush("text");
     this.status = "idle";
     this.language = "text";
     this._resolve = null;
     this._promise = null;
-    notifyStateChange(); // replaces: updateLangBadge() + mirrorToHighlight()
+    notifyStateChange();
   },
 
-  /**
-   * Soft reset — content changed while editing.
-   * Clears stale result so share button re-triggers detection,
-   * but only transitions from terminal states (done/failed → idle).
-   * Does NOT flush pending waiters; if detection is in-progress, leave it.
-   */
   softReset() {
     if (this.status === "done" || this.status === "failed") {
       this.status = "idle";
       this.language = "text";
       this._resolve = null;
       this._promise = null;
-      notifyStateChange(); // replaces: updateLangBadge()
+      notifyStateChange();
     }
   },
 };
 
 // ── Threshold check ───────────────────────────────────────────────────────────
 
-/** Returns true if code is long enough to bother sending to the detector. */
 export function meetsThreshold(code) {
   return code.split("\n").length >= MIN_LINES || code.length >= MIN_CHARS;
 }
@@ -136,17 +103,6 @@ export function meetsThreshold(code) {
 
 let lastDetectionCall = 0;
 
-/**
- * POST /detect-language and update detection state.
- *
- * try/catch scope is intentionally narrow — it only guards the fetch and
- * the JSON parse. detection.setResult() is called OUTSIDE the try block
- * so that a Prism crash inside the onStateChange callback can never
- * be mistaken for a network failure and trigger setFailed().
- *
- * @param {string}  code      — current editor content
- * @param {boolean} immediate — if true, bypass the cooldown guard
- */
 export async function triggerDetection(code, immediate = false) {
   if (!code || !meetsThreshold(code)) return;
 
@@ -156,12 +112,11 @@ export async function triggerDetection(code, immediate = false) {
 
   detection.status = "in-progress";
   lastDetectionCall = now;
-  notifyStateChange(); // badge shows "detecting…"
+  notifyStateChange();
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
 
-  // ── try guards ONLY the network request ──────────────────────────────────
   let data;
   try {
     const res = await fetch("/detect-language", {
@@ -183,39 +138,31 @@ export async function triggerDetection(code, immediate = false) {
     detection.setFailed();
     return;
   }
-  // ── setResult is OUTSIDE try — Prism crashes stay isolated ───────────────
 
-  const lang =
-    data && typeof data.language === "string" ? data.language : "text";
+  const lang = data && typeof data.language === "string" ? data.language : "text";
   detection.setResult(lang);
 }
 
-// ── Event wiring ──────────────────────────────────────────────────────────────
+// ── Event wiring (Handled by main.js in CM6) ──────────────────────────────────
 
 let debounceTimer = null;
 
-/** Export so modes.js / actions.js can clear the debounce on reset. */
 export function clearDetectionDebounce() {
   clearTimeout(debounceTimer);
 }
 
-/* ── Paste: full reset + immediate detection ────────────────────────────── */
-codeArea.addEventListener("paste", () => {
-  // setTimeout(0) lets the browser finish updating codeArea.value first
-  setTimeout(() => {
-    detection.reset();
-    clearTimeout(debounceTimer);
-    triggerDetection(codeArea.value, /* immediate */ true);
-  }, 0);
-});
-
-/* ── Typing: soft reset + 1 s debounce ──────────────────────────────────── */
-codeArea.addEventListener("input", () => {
+export function handleEditorUpdate(code) {
   detection.softReset();
   clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     if (detection.status === "idle") {
-      triggerDetection(codeArea.value);
+      triggerDetection(code);
     }
   }, DEBOUNCE_MS);
-});
+}
+
+export function handleImmediateDetection(code) {
+  detection.reset();
+  clearTimeout(debounceTimer);
+  triggerDetection(code, true);
+}

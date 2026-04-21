@@ -1,10 +1,5 @@
-// ── PAGE MODES ────────────────────────────────────────────────────────────────
-//
-//  enterViewMode  — after a snippet is loaded or saved
-//  enterHomeMode  — when the user clicks "New" to start fresh
-
+// ── PAGE MODES (CodeMirror 6) ──────────────────────────────────────────────────
 import {
-  codeArea,
   viewBadge,
   downloadBtn,
   editorHintEmpty,
@@ -14,37 +9,36 @@ import {
 import { hideShareBar, hideEditWarning, setEditWarningDismissed } from "./ui.js";
 import { highlights, renderHighlights, hideHighlightPopup } from "./highlights.js";
 import { detection, clearDetectionDebounce } from "./detection.js";
-import { updateLineNumbers } from "./editor.js";
 
-export function enterViewMode() {
-  viewBadge.classList.add("show");
-  downloadBtn.classList.add("show");
-  editorHintEmpty.classList.add("hidden");
-  editorHintHighlight.classList.add("hidden");
+export async function enterViewMode() {
+  if (viewBadge) viewBadge.classList.add("show");
+  if (downloadBtn) downloadBtn.classList.add("show");
+  if (editorHintEmpty) editorHintEmpty.classList.add("hidden");
+  if (editorHintHighlight) editorHintHighlight.classList.add("hidden");
 }
 
-export function enterHomeMode() {
+export async function enterHomeMode() {
   history.pushState({}, "", "/editor");
 
-  codeArea.value = "";
-  codeArea.readOnly = false;
+  const { view } = await import("./dom.js");
+  if (view) {
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: "" }
+    });
+    view.focus();
+  }
 
   hideShareBar();
-  viewBadge.classList.remove("show");
-  downloadBtn.classList.remove("show");
+  if (viewBadge) viewBadge.classList.remove("show");
+  if (downloadBtn) downloadBtn.classList.remove("show");
 
   hideEditWarning();
   setEditWarningDismissed(false);
 
-  // reset() clears detection state, calls mirrorToHighlight() + updateLangBadge()
   clearDetectionDebounce();
   detection.reset();
 
-  // Clear highlights array in-place so all modules see the reset
   highlights.length = 0;
   renderHighlights();
   hideHighlightPopup();
-
-  updateLineNumbers();
-  codeArea.focus();
 }

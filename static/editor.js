@@ -1,201 +1,167 @@
-// ── EDITOR BEHAVIOR ───────────────────────────────────────────────────────────
-//
-//  • Prism mirror overlay (mirrorToHighlight + syncHighlightScroll)
-//  • Line numbers + stats (updateLineNumbers)
-//  • Scroll synchronisation across all three panels
-//  • Tab-key interception
-//
-//  ── Dependency rule ──────────────────────────────────────────────────────────
-//  This module does NOT import from detection.js — preventing circular
-//  dependency chains.
-//
-//  mirrorToHighlight(code, language) receives all data it needs explicitly.
-//  The input-event listener needs the current language at fire-time; main.js
-//  supplies this via initEditor(getLanguage), where getLanguage is a closure
-//  that reads detection.language without this module importing detection.js.
-
+// ── EDITOR BEHAVIOR (CodeMirror 6) ───────────────────────────────────────────
 import {
-  codeArea,
-  lineNums,
-  lineInfo,
-  charInfo,
-  codeHighlight,
-  codeHighlighted,
-} from "./dom.js";
-import { syncHighlightBandsScroll } from "./highlights.js";
+  EditorView,
+  keymap,
+  highlightActiveLine,
+  lineNumbers,
+  drawSelection,
+  highlightSpecialChars,
+  dropCursor,
+  rectangularSelection,
+  crosshairCursor,
+} from "https://esm.sh/@codemirror/view";
+import { highlightSelectionMatches } from "https://esm.sh/@codemirror/search";
+import {
+  EditorState,
+  Compartment,
+} from "https://esm.sh/@codemirror/state";
+import {
+  defaultKeymap,
+  history,
+  historyKeymap,
+  indentWithTab,
+} from "https://esm.sh/@codemirror/commands";
+import {
+  indentOnInput,
+  syntaxHighlighting,
+  defaultHighlightStyle,
+  bracketMatching,
+  foldGutter,
+  foldKeymap,
+  LanguageDescription,
+} from "https://esm.sh/@codemirror/language";
+import { languages } from "https://esm.sh/@codemirror/language-data";
+import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark";
 
-// ── Language getter (injected by main.js) ─────────────────────────────────────
+import { editorContainer, setView, lineInfo, charInfo, editorHintEmpty, editorHintHighlight } from "./dom.js";
+import { handleEditorUpdate, handleImmediateDetection } from "./detection.js";
+import { highlightsField } from "./highlights.js";
+import { imagePlugin } from "./image-handler.js";
 
-/**
- * Returns the current detected language string.
- * Populated by main.js via initEditor() before any events fire.
- *
- * @type {() => string}
- */
+// ── Language Management ──────────────────────────────────────────────────────
+const languageConf = new Compartment();
+
+async function getLanguageExtension(langName) {
+  if (!langName || langName === "text") return [];
+  const desc = LanguageDescription.matchLanguageName(languages, langName);
+  if (desc) {
+    const lang = await desc.load();
+    return lang;
+  }
+  return [];
+}
+
+// ── Editor Initialization ────────────────────────────────────────────────────
 let _getLanguage = () => "text";
 
-/**
- * Called once by main.js to inject a getter for the current language.
- * This breaks the circular dependency:
- *   editor.js never imports detection.js — it just calls _getLanguage()
- *   at event-time, which is a closure over detection.language in main.js.
- *
- * @param {() => string} getLanguage
- */
 export function initEditor(getLanguage) {
   _getLanguage = getLanguage;
 }
 
-// ── Prism mirror ──────────────────────────────────────────────────────────────
+export async function createEditor(initialCode = "", initialLang = "text") {
+  console.log("Creating editor for lang:", initialLang);
+  const langExtension = await getLanguageExtension(initialLang);
+  console.log("Language extension loaded");
 
-/** Safely escape HTML entities for the plain-text fallback. */
-function escapeHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
+  const state = EditorState.create({
+    doc: initialCode,
+    extensions: [
+      lineNumbers(),
+      highlightActiveLine(),
+      highlightSpecialChars(),
+      history(),
+      foldGutter(),
+      drawSelection(),
+      dropCursor(),
+      EditorState.allowMultipleSelections.of(true),
+      indentOnInput(),
+      syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
+      bracketMatching(),
+      rectangularSelection(),
+      crosshairCursor(),
+      highlightSelectionMatches(),
+      languageConf.of(langExtension),
+      readOnlyConf.of(EditorState.readOnly.of(false)),
+      highlightsField,
+      imagePlugin,
+      oneDark,
+      keymap.of([
+        ...defaultKeymap,
+        ...historyKeymap,
+        ...foldKeymap,
+        indentWithTab,
+      ]),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) {
+          const code = update.state.doc.toString();
+          updateStats(update.state.doc);
+          
+          // Trigger detection
+          if (update.transactions.some(tr => tr.isUserEvent("input.paste"))) {
+            handleImmediateDetection(code);
+          } else {
+            handleEditorUpdate(code);
+          }
 
-/**
- * Re-render the Prism overlay to match the given code + language.
- *
- * Signature uses explicit parameters so callers (main.js, codec.js, tab-key
- * handler) pass exactly what they have — no hidden state reads.
- *
- * Prism.highlight() is wrapped in its own isolated try/catch so that any
- * Prism-internal crash (e.g. tokenizePlaceholders on an unsupported grammar)
- * silently falls back to plain escaped text and never propagates upward.
- *
- * @param {string} code     — text to highlight
- * @param {string} language — Prism language key (e.g. "python", "text")
- */
+          // Toggle hints
+          if (code.length > 0) {
+            editorHintEmpty.classList.add("hidden");
+            editorHintHighlight.classList.remove("hidden");
+          } else {
+            editorHintEmpty.classList.remove("hidden");
+            editorHintHighlight.classList.add("hidden");
+          }
 
-function injectImageLinks(html) {
-  return html.replace(
-    /\[image:(img_[a-zA-Z0-9]+)\]/g,
-    (_, image_id) =>
-      `<a href="/image/${image_id}" target="_blank" rel="noopener noreferrer" class="image-placeholder-btn">📎 View Image</a>`
-  );
-}
-
-export function mirrorToHighlight(code, language) {
-  console.log("🔥 mirrorToHighlight input:", {
-    code,
-    language,
+          // Show edit warning if editing a shared snippet
+          if (window.location.pathname !== "/editor") {
+            import("./ui.js").then(({ showEditWarning }) => showEditWarning());
+          }
+        }
+      }),
+    ],
   });
-  let html;
 
-  if (
-    language &&
-    language !== "text" &&
-    typeof Prism !== "undefined" &&
-    Prism.languages[language]
-  ) {
-    try {
-      html = Prism.highlight(code, Prism.languages[language], language);
-      console.log(
-        "✅ Prism highlighted successfully, lang:",
-        language,
-        "| output length:",
-        html.length,
-      );
-    } catch (err) {
-      console.error(
-        "💥 Prism.highlight() threw for lang:",
-        language,
-        "| error:",
-        err,
-      );
-      html = escapeHtml(code);
-    }
-  } else {
-    // Log exactly WHY we fell into the plain-text path
-    if (!language || language === "text") {
-      console.log(
-        "🔤 mirrorToHighlight: lang is 'text' or empty, using plain text",
-      );
-    } else if (typeof Prism === "undefined") {
-      console.error(
-        "❌ mirrorToHighlight: Prism is NOT defined — scripts failed to load",
-      );
-    } else if (!Prism.languages[language]) {
-      console.error(
-        "❌ mirrorToHighlight: Prism.languages['" +
-          language +
-          "'] is undefined — component not loaded",
-      );
-      console.log(
-        "📦 Available Prism languages:",
-        Object.keys(Prism.languages),
-      );
-    }
-    html = escapeHtml(code);
-  }
+  const view = new EditorView({
+    state,
+    parent: editorContainer,
+  });
 
-  html = injectImageLinks(html);
-  codeHighlighted.innerHTML = html + "\n";
-  syncHighlightScroll();
+  setView(view);
+  updateStats(state.doc);
+  return view;
 }
 
-export function syncHighlightScroll() {
-  codeHighlight.scrollTop = codeArea.scrollTop;
-  codeHighlight.scrollLeft = codeArea.scrollLeft;
-}
-
-// Re-render overlay on every keystroke.
-// _getLanguage() is called at fire-time so it always reflects the latest
-// detection result without this module holding a direct reference to detection.
-codeArea.addEventListener("input", () => {
-  mirrorToHighlight(codeArea.value, _getLanguage());
-});
-
-// ── Line numbers ──────────────────────────────────────────────────────────────
-
-export function updateLineNumbers() {
-  const lines = codeArea.value.split("\n");
-  const count = lines.length;
-  const cursorPos = codeArea.selectionStart;
-  const activeLine = codeArea.value.substring(0, cursorPos).split("\n").length;
-
+function updateStats(doc) {
+  const count = doc.lines;
+  const chars = doc.length;
   lineInfo.textContent = `${count} line${count !== 1 ? "s" : ""}`;
-  charInfo.textContent = `${codeArea.value.length} chars`;
-
-  lineNums.innerHTML = lines
-    .map(
-      (_, i) =>
-        `<span class="${i + 1 === activeLine ? "active" : ""}">${i + 1}</span>`,
-    )
-    .join("");
-
-  lineNums.scrollTop = codeArea.scrollTop;
+  charInfo.textContent = `${chars} chars`;
 }
 
-codeArea.addEventListener("input", updateLineNumbers);
-codeArea.addEventListener("keyup", updateLineNumbers);
-codeArea.addEventListener("click", updateLineNumbers);
+const readOnlyConf = new Compartment();
 
-// ── Scroll sync ───────────────────────────────────────────────────────────────
+export async function setLanguage(langName) {
+  const { view } = await import("./dom.js");
+  if (!view) return;
 
-// Sync all three scrollable panels together
-codeArea.addEventListener("scroll", () => {
-  lineNums.scrollTop = codeArea.scrollTop;
-  syncHighlightScroll();
-  syncHighlightBandsScroll();
-});
+  const extension = await getLanguageExtension(langName);
+  view.dispatch({
+    effects: languageConf.reconfigure(extension),
+  });
+}
 
-// ── Tab key ───────────────────────────────────────────────────────────────────
+export async function setReadOnly(isReadOnly) {
+  const { view } = await import("./dom.js");
+  if (!view) return;
+  
+  view.dispatch({
+    effects: readOnlyConf.reconfigure(EditorState.readOnly.of(isReadOnly))
+  });
+}
 
-// Tab key: insert 2 spaces instead of leaving the textarea
-codeArea.addEventListener("keydown", (e) => {
-  if (e.key !== "Tab") return;
-  e.preventDefault();
-
-  const start = codeArea.selectionStart;
-  const end = codeArea.selectionEnd;
-
-  codeArea.value =
-    codeArea.value.substring(0, start) + "  " + codeArea.value.substring(end);
-
-  codeArea.selectionStart = codeArea.selectionEnd = start + 2;
-
-  updateLineNumbers();
-  // Pass current values explicitly — no hidden state reads.
-  mirrorToHighlight(codeArea.value, _getLanguage());
-});
+// ── Legacy Compatibility ──────────────────
+export function mirrorToHighlight(code, language) {
+  setLanguage(language);
+}
+export function updateLineNumbers() {}
+export function syncHighlightScroll() {}

@@ -1,17 +1,11 @@
-// ── CODEC ─────────────────────────────────────────────────────────────────────
-//
-//  • decodeAndDecompress  — URL-safe base64 → gzip decompress → string
-//  • loadEncodedSnippet   — decode + hydrate editor state
-
-import { codeArea } from "./dom.js";
+// ── CODEC (CodeMirror 6) ─────────────────────────────────────────────────────────
 import { detection } from "./detection.js";
 import { highlights, parseHighlights, renderHighlights } from "./highlights.js";
-import { updateLineNumbers, mirrorToHighlight } from "./editor.js";
-import { updateLangBadge, showError } from "./ui.js";
-import { showShareBar } from "./ui.js";
+import { setLanguage } from "./editor.js";
+import { updateLangBadge, showError, showShareBar } from "./ui.js";
 import { enterViewMode } from "./modes.js";
 
-// ── 22. DECODE + DECOMPRESS ───────────────────────────────────────────────────
+// ── DECODE + DECOMPRESS ───────────────────────────────────────────────────────
 
 export async function decodeAndDecompress(encoded) {
   const std    = encoded.replace(/-/g, "+").replace(/_/g, "/");
@@ -47,30 +41,36 @@ export async function decodeAndDecompress(encoded) {
   return new TextDecoder().decode(result);
 }
 
-// ── 23. LOAD ENCODED SNIPPET ─────────────────────────────────────────────────
+// ── LOAD ENCODED SNIPPET ─────────────────────────────────────────────────────
 
 export async function loadEncodedSnippet(encoded, language = "text", highlightsStr = "") {
+  const { view } = await import("./dom.js");
+  if (!view) return;
+
   try {
     const code = await decodeAndDecompress(encoded);
 
-    codeArea.value    = code;
-    codeArea.readOnly = false;
+    // Set code in editor
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: code },
+    });
 
     detection.status   = "done";
     detection.language = language;
 
-    // Mutate highlights array in-place so all modules stay in sync
+    // Load language extension
+    await setLanguage(language);
+
+    // Hydrate highlights
     const parsed = parseHighlights(highlightsStr);
     highlights.length = 0;
     parsed.forEach((h) => highlights.push(h));
     renderHighlights();
 
-    updateLineNumbers();
-    mirrorToHighlight(codeArea.value, detection.language);
     updateLangBadge({ status: detection.status, language: detection.language });
-
     showShareBar(window.location.href);
     enterViewMode();
+    
   } catch (err) {
     showError("Failed to decode snippet.");
     console.error(err);

@@ -215,142 +215,118 @@ body {
     right: 0;
     bottom: 0;
     display: flex;
-}
-
-/* ── Line numbers ───────────────────────────────────── */
-#line-numbers {
-    width: var(--ln-width);
-    overflow: hidden;
     background: var(--editor-bg);
-    border-right: 1px solid var(--border);
-    padding-top: 18px;
-    flex-shrink: 0;
-    user-select: none;
 }
 
-#line-numbers span {
-    display: block;
-    text-align: right;
-    padding-right: 14px;
-    font-size: 13px;
-    line-height: 22px;
-    color: var(--ln-text);
-    transition: color 0.1s;
-}
-
-#line-numbers span.active {
-    color: var(--subtle);
-}
-
-/* ── Mirror container ───────────────────────────────── */
-/*
-         #code-editor-container holds two stacked layers:
-           z-index 1 → #code-highlight  (Prism-highlighted pre/code, pointer-events:none)
-           z-index 2 → #codeArea        (transparent textarea, captures all input)
-      */
-#code-editor-container {
-    position: relative;
+#editor-container {
     flex: 1;
     overflow: hidden;
-}
-
-/* ── Line highlight layer (behind Prism) ─────────────── */
-#line-highlight-layer {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background: var(--editor-bg);
-    pointer-events: none;
-    overflow: hidden;
-}
-
-#highlight-bands {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    will-change: transform;
-}
-
-.highlight-band {
-    position: absolute;
-    left: 0;
-    right: 0;
-}
-
-/* ── Prism highlight layer ──────────────────────────── */
-#code-highlight {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    margin: 0;
-    padding: 18px 20px 40px 18px;
-    /* must match #codeArea exactly */
+    position: relative;
     font-family: "JetBrains Mono", monospace;
-    font-size: 13.5px;
-    line-height: 22px;
-    white-space: pre;
-    overflow-wrap: normal;
-    overflow-x: auto;
-    overflow-y: auto;
-    pointer-events: none;
-    tab-size: 2;
-    background: transparent;
-    /* allow highlight bands to show */
-    border: none;
-    outline: none;
-    /* Hide scrollbars — scrolled via JS in sync with textarea */
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+    font-size: 14px;
 }
 
-#code-highlight::-webkit-scrollbar {
-    display: none;
+/* CodeMirror overrides to match CodeAlive palette */
+.cm-editor {
+    height: 100%;
+    background-color: transparent !important;
 }
 
-/* ── Textarea (transparent, on top) ─────────────────── */
-#codeArea {
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    background: transparent;
-    color: transparent;
-    /* text rendered by #code-highlight below */
-    caret-color: var(--accent);
-    /* cursor still visible */
-    font-family: "JetBrains Mono", monospace;
-    font-size: 13.5px;
-    line-height: 22px;
-    padding: 18px 20px 40px 18px;
-    border: none;
-    outline: none;
-    resize: none;
-    tab-size: 2;
-    white-space: pre;
-    overflow-wrap: normal;
-    overflow-x: auto;
-    overflow-y: auto;
-    /* Selection highlight still renders because the browser draws it
-           below the text layer — fully visible even with transparent text */
+.cm-activeLine, .cm-activeLineGutter {
+    background-color: transparent !important;
 }
 
-#codeArea::placeholder {
-    color: transparent;
-    /* placeholder shown via welcome overlay instead */
+.cm-editor.cm-focused {
+    outline: none !important;
 }
 
-#codeArea::-webkit-scrollbar {
+.cm-scroller {
+    font-family: "JetBrains Mono", monospace !important;
+    line-height: 1.6 !important;
+}
+
+.cm-scroller::-webkit-scrollbar {
     width: 7px;
     height: 7px;
 }
 
-#codeArea::-webkit-scrollbar-track {
+.cm-scroller::-webkit-scrollbar-track {
     background: transparent;
 }
 
-#codeArea::-webkit-scrollbar-thumb {
+.cm-scroller::-webkit-scrollbar-thumb {
     background: #1e2430;
     border-radius: 4px;
+}
+
+.cm-selectionBackground,
+.cm-focused .cm-selectionBackground {
+    background: rgba(63, 224, 160, 0.25) !important;
+}
+
+.cm-gutters {
+    background-color: var(--editor-bg) !important;
+    border-right: 1px solid var(--border) !important;
+    color: var(--ln-text) !important;
+    font-size: 13px !important;
+    min-width: var(--ln-width) !important;
+}
+
+.cm-gutterElement {
+    padding-right: 14px !important;
+}
+
+.cm-activeLine {
+    background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+.cm-activeLineGutter {
+    background-color: rgba(255, 255, 255, 0.04) !important;
+    color: var(--subtle) !important;
+}
+
+.cm-content {
+    padding: 18px 0 !important;
+}
+
+.cm-line {
+    padding: 0 20px !important;
+}
+
+/* ── IMAGE PLACEHOLDER WIDGETS ────────────────────── */
+.image-placeholder-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 10px;
+    margin: 0 4px;
+    background: rgba(63, 224, 160, 0.1);
+    border: 1px solid rgba(63, 224, 160, 0.3);
+    border-radius: 4px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.image-placeholder-btn:hover {
+    background: rgba(63, 224, 160, 0.2);
+    border-color: var(--accent);
+    transform: translateY(-1px);
+}
+
+.image-placeholder-btn::before {
+    content: "📎";
+    font-size: 12px;
+}
+
+/* ── LINE HIGHLIGHT DECORATIONS ──────────────────── */
+.cm-line-highlight {
+    background-color: rgba(63, 224, 160, 0.08) !important;
+    border-left: 3px solid var(--accent) !important;
 }
 
 #editor-hint-empty,
@@ -369,90 +345,6 @@ body {
 #editor-hint-empty.hidden,
 #editor-hint-highlight.hidden {
     opacity: 0;
-}
-
-/* ── Prism token colours — tuned for CodeAlive's dark palette ── */
-code[class*="language-"],
-pre[class*="language-"] {
-    background: transparent !important;
-    text-shadow: none !important;
-    font-family: "JetBrains Mono", monospace !important;
-    font-size: 13.5px !important;
-    line-height: 22px !important;
-    tab-size: 2 !important;
-    border-radius: 0 !important;
-    padding: 0 !important;
-    margin: 0 !important;
-}
-
-.token.comment,
-.token.prolog,
-.token.doctype,
-.token.cdata {
-    color: #3d4858;
-    font-style: italic;
-}
-
-.token.keyword,
-.token.rule,
-.token.at-rule,
-.token.important {
-    color: #7b9fff;
-}
-
-.token.string,
-.token.char,
-.token.attr-value,
-.token.template-string {
-    color: #a0d9a8;
-}
-
-.token.function,
-.token.function-name {
-    color: var(--accent);
-    /* CodeAlive green */
-}
-
-.token.number,
-.token.boolean,
-.token.constant,
-.token.symbol {
-    color: #f5a97f;
-}
-
-.token.operator,
-.token.entity {
-    color: #66768f;
-}
-
-.token.punctuation {
-    color: #4a5568;
-}
-
-.token.class-name,
-.token.builtin,
-.token.inserted {
-    color: #e8c96e;
-}
-
-.token.tag,
-.token.selector,
-.token.property,
-.token.attr-name {
-    color: #7b9fff;
-}
-
-.token.deleted,
-.token.regex {
-    color: #f08080;
-}
-
-.token.variable {
-    color: #d4d8e0;
-}
-
-.token.namespace {
-    color: #9ba8b8;
 }
 
 /* ── SHARE BAR ──────────────────────────────────────── */

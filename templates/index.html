@@ -19,13 +19,6 @@
       rel="stylesheet"
     />
 
-    <!-- Prism.js — Tomorrow Night theme (dark, matches editor palette) -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css"
-      crossorigin="anonymous"
-    />
-
     <!-- Google tag (gtag.js) -->
     <script
       async
@@ -67,7 +60,6 @@
         <button class="btn btn-ghost" id="howItWorksBtn">🟩 Highlighting Guide</button>
         <button class="btn btn-ghost" id="copyCodeBtn">copy</button>
         <button class="btn btn-ghost" id="newBtn">new</button>
-        <!-- <button class="btn btn-ghost" id="imageUploadBtn" title="Upload image">📎Upload image</button> -->
         <button class="btn btn-accent" id="shareBtn">share →</button>
         <button class="btn btn-ghost" id="downloadBtn">download ↓</button>
       </div>
@@ -75,8 +67,6 @@
 
     <!-- EDITOR -->
     <div id="editor-wrap">
-      <div id="line-numbers"></div>
-
       <!-- WELCOME OVERLAY (sits above the editor container) -->
       <div id="welcome-overlay">
         <div class="welcome-card">
@@ -100,35 +90,12 @@
         </div>
       </div>
 
-      <!--
-        Mirror container:
-          Layer 1 (z-index 1): #code-highlight — Prism-rendered <pre><code>
-          Layer 2 (z-index 2): #codeArea       — transparent textarea (captures input)
-      -->
-      <div id="code-editor-container">
-        <!-- Highlight bands (rendered by JS, scroll-synced) -->
-        <div id="line-highlight-layer" aria-hidden="true">
-          <div id="highlight-bands"></div>
-        </div>
-        <pre
-          id="code-highlight"
-          aria-hidden="true"
-        ><code id="code-highlighted"></code></pre>
+      <div id="editor-container"></div>
+      
+      <div id="editor-hint-empty">↳ Paste or type your code here</div>
 
-        <div id="editor-hint-empty">↳ Paste or type your code here</div>
-
-        <div id="editor-hint-highlight" class="hidden">
-          💡 Select any lines to highlight and share
-        </div>
-
-        <textarea
-          id="codeArea"
-          spellcheck="false"
-          autocomplete="off"
-          autocorrect="off"
-          autocapitalize="off"
-          placeholder=""
-        ></textarea>
+      <div id="editor-hint-highlight" class="hidden">
+        💡 Select any lines to highlight and share
       </div>
     </div>
 
@@ -324,158 +291,36 @@
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════════════
-         Prism.js — load BEFORE main.js so Prism is available on init.
-         Core bundle already includes: markup/html/xml, css, clike, javascript.
-         Components are ordered so dependencies come before dependents.
-         Every language that language_detector.py can return has a script here.
-    ═══════════════════════════════════════════════════════════════════ -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"
-      crossorigin="anonymous"
-    ></script>
-
-    <!-- ── Languages already in core (no extra script needed) ────────────────
-         markup / html / xml  →  Prism.languages["html"] / ["xml"] ✓
-         css                  →  Prism.languages["css"]            ✓
-         javascript           →  Prism.languages["javascript"]     ✓
-    ─────────────────────────────────────────────────────────────────────── -->
-
-    <!-- ── Extra language components (one per language the detector returns) ── -->
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-typescript.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-java.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-c.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cpp.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup-templating.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-ruby.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-swift.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-kotlin.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-scala.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-groovy.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-dart.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-r.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-yaml.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markdown.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-solidity.min.js"
-      crossorigin="anonymous"
-    ></script>
-    <script
-      src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-cobol.min.js"
-      crossorigin="anonymous"
-    ></script>
-
     <!-- Main application logic -->
     <script type="module" src="/static/main.js"></script>
 
-    <!-- Welcome overlay logic (self-contained, no Prism dependency) -->
+    <!-- Welcome overlay logic -->
     <script>
-  (function () {
-    const overlay = document.getElementById("welcome-overlay");
-    const closeBtn = document.getElementById("welcomeClose");
-    const textarea = document.getElementById("codeArea");
+      (function () {
+        const overlay = document.getElementById("welcome-overlay");
+        const closeBtn = document.getElementById("welcomeClose");
 
-    function dismissOverlay() {
-      if (!overlay || overlay.classList.contains("hidden")) return;
+        function dismissOverlay() {
+          if (!overlay || overlay.classList.contains("hidden")) return;
+          overlay.classList.add("hidden");
+          overlay.style.pointerEvents = "none";
+          overlay.addEventListener(
+            "animationend",
+            () => { overlay.style.display = "none"; },
+            { once: true },
+          );
+        }
 
-      overlay.classList.add("hidden");
-      // Don't wait for animationend — set pointer-events off immediately
-      // so the overlay never blocks the editor underneath
-      overlay.style.pointerEvents = "none";
-
-      if (typeof triggerHighlightAfterWelcome === "function") {
-        triggerHighlightAfterWelcome();
-      }
-
-      overlay.addEventListener(
-        "animationend",
-        () => { overlay.style.display = "none"; },
-        { once: true },
-      );
-    }
-
-    if (closeBtn) closeBtn.addEventListener("click", dismissOverlay);
-    // click only — no focus listener (focus fires on programmatic codeArea.focus() too)
-    if (textarea) textarea.addEventListener("click", dismissOverlay);
-
-    if (textarea && textarea.value.trim().length > 0) {
-      overlay.style.display = "none";
-    }
-  })();
-</script>
+        if (closeBtn) closeBtn.addEventListener("click", dismissOverlay);
+        
+        // Dismiss when clicking anywhere outside the welcome content
+        document.addEventListener("click", (e) => {
+          if (!overlay || overlay.classList.contains("hidden")) return;
+          // If the click is inside the welcome box, ignore it
+          if (e.target.closest('.welcome-content')) return;
+          dismissOverlay();
+        });
+      })();
+    </script>
   </body>
 </html>

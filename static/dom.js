@@ -1,17 +1,13 @@
 // ── DOM REFERENCES ────────────────────────────────────────────────────────────
 
-export const codeArea     = document.getElementById("codeArea");
-export const lineNums     = document.getElementById("line-numbers");
+// ── DOM REFERENCES ────────────────────────────────────────────────────────────
+export const editorContainer = document.getElementById("editor-container");
+export let view = null; // To be populated by editor.js
+export function setView(v) { view = v; }
+export function getView() { return view; }
+
 export const lineInfo     = document.getElementById("lineInfo");
 export const charInfo     = document.getElementById("charInfo");
-
-/* Syntax-highlight mirror */
-export const codeHighlight   = document.getElementById("code-highlight");
-export const codeHighlighted = document.getElementById("code-highlighted");
-
-/* Line highlight bands (behind Prism) */
-export const lineHighlightLayer = document.getElementById("line-highlight-layer");
-export const highlightBands     = document.getElementById("highlight-bands");
 
 /* Floating popup for highlight selection */
 export const highlightPopup    = document.getElementById("highlight-popup");
