@@ -45,8 +45,31 @@
       <div class="nav-right">
         <a href="/editor" class="btn-ghost-sm" target="_blank" rel="noopener">Open Editor</a>
         <a href="/waitlist" class="btn-green-sm" target="_blank" rel="noopener">Join Waitlist →</a>
+        
+        <button id="mobile-menu-toggle" aria-label="Toggle Menu">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </button>
       </div>
     </nav>
+
+    <!-- ── MOBILE NAV OVERLAY ────────────────────────────────────── -->
+    <div id="mobile-nav-overlay">
+      <div class="m-nav-header">
+        <a href="/" class="nav-logo">
+          <span class="logo-pulse"></span>
+          Code<span class="logo-dim">Alive</span>
+        </a>
+      </div>
+      <div class="m-nav-links">
+        <a href="#features" class="m-link">Features</a>
+        <a href="#how-it-works" class="m-link">How it works</a>
+        <a href="#collab" class="m-link">Collaboration</a>
+        <a href="/editor" class="m-link-cta" target="_blank" rel="noopener">Open Editor ↗</a>
+        <a href="/waitlist" class="m-link-cta primary" target="_blank" rel="noopener">Join Waitlist →</a>
+      </div>
+    </div>
 
     <!-- ── HERO ────────────────────────────────────────────────────── -->
     <section id="hero">
@@ -506,6 +529,7 @@
       </div>
     </footer>
 
+    <script src="/static/mobile-nav.js"></script>
     <script src="/static/home.js"></script>
   </body>
 </html>

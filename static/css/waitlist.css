@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 100px 24px;
+  padding: 100px var(--site-pad) 60px;
   position: relative;
   overflow: hidden;
   text-align: center;
@@ -24,13 +24,13 @@
 }
 
 #waitlist-hero h1 {
-  font-size: 64px;
+  font-size: var(--h1-size);
   margin-bottom: 24px;
   animation-delay: 0.1s;
 }
 
 .waitlist-sub {
-  font-size: 15px;
+  font-size: clamp(14px, 4vw, 15px);
   line-height: 1.8;
   color: var(--text2);
   margin-bottom: 48px;
@@ -70,8 +70,9 @@
   padding: 14px 20px;
   color: var(--text);
   font-family: var(--mono);
-  font-size: 14px;
+  font-size: 16px; /* Better for iOS to prevent zoom */
   outline: none;
+  min-width: 0;
 }
 
 .waitlist-form input::placeholder {
@@ -81,6 +82,7 @@
 .waitlist-form button {
   white-space: nowrap;
   padding: 12px 28px;
+  min-height: 48px;
 }
 
 .form-note {
@@ -105,6 +107,35 @@
 
 .btn-link-sm:hover {
   color: var(--text2);
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .input-group {
+    flex-direction: column;
+  }
+  
+  .waitlist-form {
+    padding: 16px;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .waitlist-form input {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    width: 100%;
+    height: 52px;
+  }
+
+  .waitlist-form button {
+    width: 100%;
+    justify-content: center;
+    font-size: 14px;
+  }
 }
 
 /* ── STATES ──────────────────────────────────────────────────── */
@@ -157,26 +188,4 @@
 
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-/* ── RESPONSIVE ──────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  #waitlist-hero h1 {
-    font-size: 48px;
-  }
-}
-
-@media (max-width: 580px) {
-  .input-group {
-    flex-direction: column;
-  }
-  
-  .waitlist-form button {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  #waitlist-hero h1 {
-    font-size: 38px;
-  }
 }
