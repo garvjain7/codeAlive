@@ -32,7 +32,11 @@ class ImageWidget extends WidgetType {
     btn.textContent = "View Image";
     btn.dataset.imageId = this.imageId;
     btn.title = `Click to view image (${this.imageId})`;
-    btn.onclick = () => window.open(`/image/${this.imageId}`, "_blank", "noopener,noreferrer");
+    btn.onclick = async () => {
+      if (window.location.pathname === "/editor") return;
+      const { showImageModal } = await import("./ui.js");
+      showImageModal(`/image/${this.imageId}`);
+    };
     return btn;
   }
 

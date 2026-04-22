@@ -88,3 +88,36 @@ if (ewDismiss) {
     hideEditWarning();
   });
 }
+
+// ── 11. IMAGE VIEWER MODAL ───────────────────────────────────────────────────
+
+export const imageViewerModal = document.getElementById("image-viewer-modal");
+export const imageModalContent = document.getElementById("imageModalContent");
+export const imageModalClose = document.getElementById("imageModalClose");
+
+export function showImageModal(url) {
+  if (!imageViewerModal || !imageModalContent) return;
+  imageModalContent.src = url;
+  imageViewerModal.classList.remove("hidden");
+}
+
+export function hideImageModal() {
+  if (!imageViewerModal) return;
+  imageViewerModal.classList.add("hidden");
+  imageModalContent.src = "";
+}
+
+if (imageModalClose) {
+  imageModalClose.addEventListener("click", hideImageModal);
+}
+if (imageViewerModal) {
+  imageViewerModal.addEventListener("click", (e) => {
+    // Hide if clicking outside the image itself
+    if (e.target === imageViewerModal) hideImageModal();
+  });
+}
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && imageViewerModal && !imageViewerModal.classList.contains("hidden")) {
+    hideImageModal();
+  }
+});
