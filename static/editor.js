@@ -114,7 +114,21 @@ export async function createEditor(initialCode = "", initialLang = "text") {
 
           // Show edit warning if editing a shared snippet
           if (window.location.pathname !== "/editor") {
-            import("./ui.js").then(({ showEditWarning }) => showEditWarning());
+            const isUserChange = update.transactions.some(tr => 
+              tr.isUserEvent("input") || 
+              tr.isUserEvent("delete") || 
+              tr.isUserEvent("undo") || 
+              tr.isUserEvent("redo") || 
+              tr.isUserEvent("paste") || 
+              tr.isUserEvent("drop")
+            );
+            if (isUserChange) {
+              import("./ui.js").then(({ showEditWarning, setHasEditingStarted }) => {
+                if (setHasEditingStarted(true)) {
+                  showEditWarning();
+                }
+              });
+            }
           }
         }
       }),
