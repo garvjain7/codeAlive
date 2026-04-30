@@ -68,19 +68,12 @@ export function hideShareBar() {
 
 export let editWarningDismissed = false;
 
-let hasEditingStarted = false;
-export function setHasEditingStarted(val) {
-  const wasStarted = hasEditingStarted;
-  hasEditingStarted = val;
-  return !wasStarted && val; // Return true if this is the first time setting to true
-}
-
 export function setEditWarningDismissed(val) {
   editWarningDismissed = val;
 }
 
 export function showEditWarning() {
-  if (!hasEditingStarted || editWarningDismissed || !editWarning) return;
+  if (editWarningDismissed || !editWarning) return;
   editWarning.classList.add("show");
 }
 

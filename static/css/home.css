@@ -564,7 +564,7 @@ h1 em { font-style: italic; color: var(--green); }
 }
 .feat-card p { font-size: 12px; line-height: 1.8; color: var(--text2); margin-bottom: 18px; }
 
-.tag-soon {
+/* .tag-soon {
   display: inline-flex;
   align-items: center;
   font-size: 8px;
@@ -578,7 +578,7 @@ h1 em { font-style: italic; color: var(--green); }
   border-radius: 4px;
   margin-left: 8px;
   vertical-align: middle;
-}
+} */
 
 .feat-lang-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .feat-lang-chips span {
@@ -876,4 +876,4 @@ h1 em { font-style: italic; color: var(--green); }
 
   .cta-title { font-size: 32px; }
   .btn-large { width: 100%; justify-content: center; }
-}
+}
