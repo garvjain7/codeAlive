@@ -5,9 +5,9 @@ import {
   copyBtn,
   copyCodeBtn,
   newBtn,
-  downloadBtn,
   shareUrl,
   customCode,
+  searchBtn,
 } from "./dom.js";
 
 import { MAX_LINES } from "./constants.js";
@@ -22,8 +22,15 @@ import {
   setCreateBtnNormal,
 } from "./modal.js";
 import { enterViewMode, enterHomeMode } from "./modes.js";
+import { triggerSearch } from "./editor.js";
 
-// ── 16. SHARE BUTTON ─────────────────────────────────────────────────────────
+// ── SEARCH BUTTON ────────────────────────────────────────────────────────────
+
+searchBtn.addEventListener("click", () => {
+  triggerSearch();
+});
+
+// ── SHARE BUTTON ─────────────────────────────────────────────────────────────
 
 shareBtn.addEventListener("click", async () => {
   const { view } = await import("./dom.js");
@@ -93,6 +100,25 @@ createShare.addEventListener("click", async () => {
 
   formData.append("highlights", highlightsStr || "");
   formData.append("custom_code", custom.trim() || "");
+
+  // Add advanced options if they exist (logged-in users)
+  const { snippetPassword, expiryDays, snippetTitle } = await import("./dom.js");
+  
+  if (snippetTitle) {
+    const titleVal = snippetTitle.value.trim();
+    if (!titleVal) {
+      showError("Please enter a snippet title.");
+      return;
+    }
+    formData.append("title", titleVal);
+  }
+
+  if (snippetPassword) {
+    formData.append("password", snippetPassword.value || "");
+  }
+  if (expiryDays) {
+    formData.append("expiry", expiryDays.value || "30");
+  }
 
   setCreateBtnLoading("creating...");
 

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login — CodeAlive</title>
+    <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="stylesheet" href="/static/css/auth.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap" rel="stylesheet" />
+  </head>
+  <body class="auth-body">
+    <div class="auth-glow-green"></div>
+    <div class="auth-glow-blue"></div>
+
+    <div class="auth-container">
+      <div class="auth-header">
+        <a href="/" class="auth-logo">
+          <span class="logo-pulse"></span>
+          Code<span class="logo-dim">Alive</span>
+        </a>
+        <h1 class="auth-title">Welcome <em>back.</em></h1>
+      </div>
+
+      <form id="loginForm" class="auth-form">
+        <div class="form-group">
+          <label for="identifier">Email or Username</label>
+          <input type="text" id="identifier" class="auth-input" placeholder="Enter your credentials" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" class="auth-input" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary auth-btn">Sign In</button>
+      </form>
+
+      <div class="auth-links">
+        <a href="#" id="openForgotPassword">Forgot Password?</a>
+        <a href="/signup?next={{ request.query_params.get('next', '') }}">No existing account? <strong>Create one</strong></a>
+      </div>
+    </div>
+
+    <!-- ERROR BAR -->
+    <div id="error-bar"></div>
+
+    <!-- Forgot Password Modal -->
+    <div id="modalOverlay" class="auth-modal-overlay">
+      <div class="auth-modal">
+        <button id="closeModal" class="modal-close">&times;</button>
+        <h2 class="modal-title">Reset Password</h2>
+        <p class="modal-desc">Enter your email address and we'll send you a link to reset your password.</p>
+        <form id="forgotPasswordForm" class="auth-form">
+          <div class="form-group">
+            <label for="forgotEmail">Email Address</label>
+            <input type="email" id="forgotEmail" class="auth-input" placeholder="name@example.com" required>
+          </div>
+          <button type="submit" class="btn-primary auth-btn">Send Reset Link</button>
+        </form>
+      </div>
+    </div>
+
+    <script type="module" src="/static/auth.js"></script>
+  </body>
+</html>

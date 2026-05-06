@@ -22,11 +22,12 @@ export function showError(msg, duration = 4000) {
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
 let toastTimer;
-export function showToast() {
+export function showToast(msg = "Copied!", duration = 2000) {
   if (!toast) return;
+  toast.textContent = msg;
   toast.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove("show"), 2000);
+  toastTimer = setTimeout(() => toast.classList.remove("show"), duration);
 }
 
 // ── Language badge ────────────────────────────────────────────────────────────

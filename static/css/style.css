@@ -832,17 +832,62 @@ body {
     border: 1px solid var(--border);
 }
 
-/* ── CUSTOM URL SECTION ─────────────────────────────── */
-#customUrlSection {
-    overflow: hidden;
-    max-height: 0;
-    opacity: 0;
-    transition:
-        max-height 0.3s ease,
-        opacity 0.25s ease,
-        margin-bottom 0.3s ease;
-    margin-bottom: 0;
+/* ── ADVANCED OPTIONS ───────────────────────────────── */
+#advancedOptions {
+    margin-bottom: 22px;
 }
+
+.option-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.input-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.input-group label {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.input-group input,
+.input-group select {
+    background: var(--modal-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.input-group select {
+    appearance: none;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237a8190' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+}
+
+/* ── CUSTOM URL SECTION ─────────────────────────────── */
+
 
 #customUrlSection.open {
     max-height: 130px;
@@ -1077,6 +1122,76 @@ body {
 #edit-warning .ew-dismiss:hover {
     color: var(--muted);
     border-color: var(--subtle);
+}
+
+/* ── PASSWORD PROTECTION OVERLAY ─────────────────────── */
+#password-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    background: rgba(10, 12, 15, 0.85);
+    backdrop-filter: blur(12px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.password-card {
+    background: var(--modal-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px;
+    width: 420px;
+    text-align: center;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7);
+}
+
+.lock-icon {
+    font-size: 32px;
+    margin-bottom: 20px;
+}
+
+.password-card h2 {
+    font-family: "Syne", sans-serif;
+    font-size: 22px;
+    margin-bottom: 12px;
+    color: var(--text);
+}
+
+.password-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 24px;
+}
+
+.password-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.password-input-group input {
+    background: var(--modal-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 12px 16px;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 14px;
+    outline: none;
+    text-align: center;
+}
+
+.password-input-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+#unlockError {
+    margin-top: 14px;
+    font-size: 12px;
+    color: var(--error);
 }
 
 /* ── WELCOME OVERLAY ────────────────────────────────── */
@@ -1729,5 +1844,152 @@ body {
         border-radius: 0;
         border-left: none;
         border-right: none;
+    }
+}
+
+/* ── SEARCH PANEL (CodeMirror) ───────────────────────────────────────────── */
+.cm-panels {
+    background-color: var(--bar-bg) !important;
+    color: var(--text) !important;
+    border-bottom: 1px solid var(--border) !important;
+    position: relative !important;
+}
+
+.cm-panel.cm-search {
+    padding: 12px 40px 12px 16px !important; /* Extra right padding for absolute close button */
+    background-color: var(--bar-bg) !important;
+    display: block !important; /* OVERRIDE FLEX */
+    max-width: 100% !important;
+}
+
+/* Clearfix */
+.cm-panel.cm-search::after {
+    content: "" !important;
+    display: table !important;
+    clear: both !important;
+}
+
+/* Float all search elements */
+.cm-panel.cm-search > * {
+    display: block !important;
+    float: left !important;
+    margin-right: 8px !important;
+    margin-bottom: 8px !important;
+}
+
+/* Force replace to the second row! */
+.cm-panel.cm-search input[name="replace"] {
+    clear: left !important;
+}
+
+/* Ensure the close button sits perfectly in the top right corner */
+.cm-panel button[name=close] {
+    position: absolute !important;
+    top: 10px !important;
+    right: 12px !important;
+    float: none !important;
+    margin: 0 !important;
+    font-size: 16px !important;
+    padding: 2px 6px !important;
+    border: none !important;
+    background: transparent !important;
+    color: var(--muted) !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+}
+
+.cm-panel button[name=close]:hover {
+    background: transparent !important;
+    color: var(--error) !important;
+    border-color: transparent !important;
+}
+
+.cm-panel input.cm-textfield {
+    background-color: var(--editor-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    color: var(--text) !important;
+    padding: 6px 12px !important;
+    font-family: "JetBrains Mono", monospace !important;
+    font-size: 12.5px !important;
+    outline: none !important;
+    transition: border-color 0.2s !important;
+    min-width: 180px !important;
+    height: 30px !important;
+}
+
+.cm-panel input.cm-textfield:focus {
+    border-color: var(--accent) !important;
+}
+
+.cm-panel button:not([name=close]) {
+    background-color: var(--bar-bg) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 6px !important;
+    color: var(--muted) !important;
+    padding: 6px 12px !important;
+    cursor: pointer !important;
+    font-size: 12px !important;
+    font-family: "JetBrains Mono", monospace !important;
+    transition: background 0.2s, border-color 0.2s, color 0.2s !important;
+    height: 30px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.cm-panel button:not([name=close]):hover {
+    background-color: rgba(63, 224, 160, 0.08) !important;
+    border-color: var(--accent) !important;
+    color: var(--accent) !important;
+}
+
+.cm-panel label {
+    font-family: "JetBrains Mono", monospace !important;
+    font-size: 11.5px !important;
+    color: var(--muted) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    cursor: pointer !important;
+    height: 30px !important; /* Match inputs and buttons */
+    margin-left: 4px !important;
+}
+
+.cm-panel label input[type="checkbox"] {
+    accent-color: var(--accent) !important;
+    cursor: pointer !important;
+    margin: 0 !important;
+    width: 14px !important;
+    height: 14px !important;
+    min-width: unset !important;
+    padding: 0 !important;
+}
+
+.cm-searchMatch {
+    background-color: rgba(63, 224, 160, 0.25) !important;
+    border-radius: 2px !important;
+}
+
+.cm-searchMatch.cm-searchMatch-selected {
+    background-color: rgba(63, 224, 160, 0.45) !important;
+    outline: 1px solid var(--accent) !important;
+}
+
+/* ── Mobile responsiveness for search panel ── */
+@media (max-width: 650px) {
+    .cm-panel.cm-search {
+        padding: 10px 30px 10px 12px !important;
+    }
+    .cm-panel.cm-search input.cm-textfield {
+        min-width: 120px !important;
+        width: 100% !important;
+    }
+    .cm-panel.cm-search label {
+        font-size: 10.5px !important;
+    }
+    .cm-panel button:not([name=close]) {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
     }
 }

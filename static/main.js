@@ -28,6 +28,7 @@ import {
   initImageHandler, 
   imagePlugin 
 } from "./image-handler.js";
+import { initUnlock } from "./unlock.js";
 
 import "./ui.js";
 import "./modal.js";
@@ -63,12 +64,14 @@ window.addEventListener("beforeunload", (e) => {
   const encoded          = window.__ENCODED__    || "";
   const language         = window.__LANGUAGE__   || "text";
   const storedHighlights = window.__HIGHLIGHTS__ || "";
+  const isViewMode       = window.location.pathname !== "/editor";
 
   // 2. Initialize CM6
   console.log("Starting CM6 initialization...");
   const view = await createEditor(
     "", // Start empty, will be filled by codec if needed
-    language
+    language,
+    isViewMode
   );
   console.log("Editor created:", view);
 
@@ -84,6 +87,7 @@ window.addEventListener("beforeunload", (e) => {
   // 4. Initialize Handlers
   initHighlights();
   initImageHandler();
+  initUnlock();
 
   // 5. Wire Update Listener for Detection
   view.dispatch({
@@ -93,9 +97,9 @@ window.addEventListener("beforeunload", (e) => {
   });
 
   // 6. Handle Content Loading
-  if (encoded.length > 0) {
+  if (encoded.length > 0 && !window.__IS_PROTECTED__) {
     await loadEncodedSnippet(encoded, language, storedHighlights);
-  } else {
+  } else if (!window.__IS_PROTECTED__) {
     // New snippet mode
     view.focus();
   }

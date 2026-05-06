@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace | CodeAlive</title>
+    <link rel="stylesheet" href="/static/css/workspace.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700&display=swap" rel="stylesheet">
+</head>
+<body class="dark-theme">
+    <!-- TOP NAVIGATION -->
+    <nav id="top-nav">
+        <div class="nav-left">
+            <a href="/" class="logo">Code<span>Alive</span></a>
+        </div>
+        
+        <div class="nav-center">
+            <div class="search-wrap">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="workspaceSearch" placeholder="Search snippets by title or language...">
+            </div>
+        </div>
+
+        <div class="nav-right">
+            <div class="profile-container" id="profileToggle">
+                <div class="avatar">
+                    <span class="avatar-initial" id="avatarInitial">U</span>
+                </div>
+                <div class="dropdown-menu" id="profileDropdown">
+                    <div class="dropdown-header">
+                        <span class="user-email" id="userEmailDisplay">user@codealive.com</span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="/profile" class="dropdown-item">Profile Settings</a>
+                    <button id="themeToggle" class="dropdown-item">Toggle Theme</button>
+                    <div class="dropdown-divider"></div>
+                    <a href="/auth/logout" class="dropdown-item logout">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="workspace-layout">
+        <!-- LEFT SIDEBAR -->
+        <aside class="sidebar">
+            <div class="sidebar-top">
+                <a href="/editor" class="btn-new-snippet">+ New Snippet</a>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-group">
+                    <div class="group-title">Workspace</div>
+                    <div class="nav-tree">
+                        <div class="tree-item active" data-view="created" id="nav-created">
+                            <span class="tree-icon">👤</span>
+                            <span class="tree-label">My Snippets</span>
+                        </div>
+                        <div class="tree-item" data-view="accessed" id="nav-accessed">
+                            <span class="tree-icon">🔓</span>
+                            <span class="tree-label">Accessed Snippets</span>
+                        </div>
+                        <div class="tree-item disabled">
+                            <span class="tree-icon">🏢</span>
+                            <span class="tree-label">Organization</span>
+                            <span class="badge-soon">Soon</span>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- MAIN PANEL -->
+        <main class="main-panel">
+            <div class="panel-container">
+                <!-- SECTION 1: INSIGHTS -->
+                <header class="section-header">
+                    <h1>Workspace Insights</h1>
+                </header>
+                <div class="stats-grid" id="statsGrid">
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-total">--</span>
+                        <span class="stat-label">Total Snippets</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-active">--</span>
+                        <span class="stat-label">Active Snippets</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-languages">--</span>
+                        <span class="stat-label">Languages Used</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-value" id="stat-accessed">--</span>
+                        <span class="stat-label">Protected Accessed</span>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: QUICK ACTIONS -->
+                <div class="quick-actions">
+                    <a href="/editor" class="action-btn primary">+ New Snippet</a>
+                    <a href="/editor" class="action-btn">Paste & Share</a>
+                    <button class="action-btn disabled">Import Code</button>
+                </div>
+
+                <!-- SECTION 3: TABS -->
+                <div class="tab-row">
+                    <button class="tab-btn active" data-tab="created" id="tab-created">My Snippets</button>
+                    <button class="tab-btn" data-tab="accessed" id="tab-accessed">Accessed Snippets</button>
+                </div>
+
+                <!-- SECTION 4: SNIPPET LIST -->
+                <div class="snippet-list" id="snippetList">
+                    <!-- Cards will be injected here via JS -->
+                    <div class="list-loading">
+                        <div class="spinner"></div>
+                        <p>Fetching your snippets...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast">Copied!</div>
+
+    <script type="module" src="/static/workspace.js"></script>
+</body>
+</html>

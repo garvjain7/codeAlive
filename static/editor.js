@@ -10,7 +10,7 @@ import {
   rectangularSelection,
   crosshairCursor,
 } from "https://esm.sh/@codemirror/view";
-import { highlightSelectionMatches } from "https://esm.sh/@codemirror/search";
+import { highlightSelectionMatches, search, openSearchPanel } from "https://esm.sh/@codemirror/search";
 import {
   EditorState,
   Compartment,
@@ -58,7 +58,7 @@ export function initEditor(getLanguage) {
   _getLanguage = getLanguage;
 }
 
-export async function createEditor(initialCode = "", initialLang = "text") {
+export async function createEditor(initialCode = "", initialLang = "text", isReadOnly = false) {
   console.log("Creating editor for lang:", initialLang);
   const langExtension = await getLanguageExtension(initialLang);
   console.log("Language extension loaded");
@@ -79,9 +79,10 @@ export async function createEditor(initialCode = "", initialLang = "text") {
       bracketMatching(),
       rectangularSelection(),
       crosshairCursor(),
+      search({top: true}),
       highlightSelectionMatches(),
       languageConf.of(langExtension),
-      readOnlyConf.of(EditorState.readOnly.of(false)),
+      readOnlyConf.of(EditorState.readOnly.of(isReadOnly)),
       highlightsField,
       imagePlugin,
       oneDark,
@@ -112,8 +113,9 @@ export async function createEditor(initialCode = "", initialLang = "text") {
             editorHintHighlight.classList.add("hidden");
           }
 
-          // Show edit warning if editing a shared snippet
-          if (window.location.pathname !== "/editor") {
+          // Show edit warning if editing a shared snippet (ONLY IF NOT READ-ONLY)
+          const isReadOnly = update.state.readOnly;
+          if (!isReadOnly && window.location.pathname !== "/editor") {
             const isUserChange = update.transactions.some(tr => 
               tr.isUserEvent("input") || 
               tr.isUserEvent("delete") || 
@@ -179,3 +181,10 @@ export function mirrorToHighlight(code, language) {
 }
 export function updateLineNumbers() {}
 export function syncHighlightScroll() {}
+
+export async function triggerSearch() {
+  const { view } = await import("./dom.js");
+  if (!view) return;
+  openSearchPanel(view);
+  view.focus();
+}

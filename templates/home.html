@@ -45,6 +45,14 @@
       <div class="nav-right">
         <a href="/editor" class="btn-ghost-sm" target="_blank" rel="noopener">Open Editor</a>
         <a href="/waitlist" class="btn-green-sm" target="_blank" rel="noopener">Join Waitlist →</a>
+        {% if user_id %}
+          <a href="/workspace" class="btn-ghost-sm">Workspace</a>
+          <a href="/profile" class="btn-ghost-sm">Profile</a>
+          <a href="/auth/logout" class="btn-ghost-sm">Logout</a>
+        {% else %}
+          <a href="/login" class="btn-ghost-sm">Login</a>
+          <a href="/signup" class="btn-green-sm">Sign Up →</a>
+        {% endif %}
         
         <button id="mobile-menu-toggle" aria-label="Toggle Menu">
           <span class="bar"></span>
@@ -66,8 +74,16 @@
         <a href="#features" class="m-link">Features</a>
         <a href="#how-it-works" class="m-link">How it works</a>
         <a href="#collab" class="m-link">Collaboration</a>
-        <a href="/editor" class="m-link-cta" target="_blank" rel="noopener">Open Editor ↗</a>
-        <a href="/waitlist" class="m-link-cta primary" target="_blank" rel="noopener">Join Waitlist →</a>
+        <a href="/editor" class="m-link-cta">Open Editor ↗</a>
+        {% if user_id %}
+          <a href="/workspace" class="m-link">Workspace</a>
+          <a href="/profile" class="m-link">Profile</a>
+          <a href="/auth/logout" class="m-link-cta primary">Logout</a>
+        {% else %}
+          <a href="/login" class="m-link">Login</a>
+          <a href="/signup" class="m-link-cta">Sign Up ↗</a>
+          <a href="/waitlist" class="m-link-cta primary">Join Waitlist →</a>
+        {% endif %}
       </div>
     </div>
 

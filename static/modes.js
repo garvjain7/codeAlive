@@ -10,11 +10,16 @@ import { hideShareBar, hideEditWarning, setEditWarningDismissed } from "./ui.js"
 import { highlights, renderHighlights, hideHighlightPopup } from "./highlights.js";
 import { detection, clearDetectionDebounce } from "./detection.js";
 
+import { setReadOnly } from "./editor.js";
+
 export async function enterViewMode() {
   if (viewBadge) viewBadge.classList.add("show");
   if (downloadBtn) downloadBtn.classList.add("show");
   if (editorHintEmpty) editorHintEmpty.classList.add("hidden");
   if (editorHintHighlight) editorHintHighlight.classList.add("hidden");
+  
+  // Strictly prohibit editing
+  setReadOnly(true);
 }
 
 export async function enterHomeMode() {
@@ -22,6 +27,8 @@ export async function enterHomeMode() {
 
   const { view } = await import("./dom.js");
   if (view) {
+    // Allow editing in home mode
+    setReadOnly(false);
     view.dispatch({
       changes: { from: 0, to: view.state.doc.length, insert: "" }
     });

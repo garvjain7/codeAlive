@@ -40,6 +40,8 @@
       window.__ENCODED__ = "{{ encoded  | default('') }}";
       window.__LANGUAGE__ = "{{ language | default('text') }}";
       window.__HIGHLIGHTS__ = "{{ highlights | default('') }}";
+      window.__IS_PROTECTED__ = "{{ 'true' if is_protected else 'false' }}" === "true";
+      window.__CODE_ID__ = "{{ code_id | default('') }}";
     </script>
 
     <!-- TOP BAR -->
@@ -57,10 +59,19 @@
 
       <div class="bar-right">
         <div id="view-badge"><span class="vdot"></span>viewing</div>
+        <button class="btn btn-ghost" id="searchBtn">🔍 search</button>
         <button class="btn btn-ghost" id="howItWorksBtn">🟩 Highlighting Guide</button>
         <button class="btn btn-ghost" id="imageUploadBtn">📷 upload image</button>
         <button class="btn btn-ghost" id="copyCodeBtn">copy</button>
         <button class="btn btn-ghost" id="newBtn">new</button>
+        {% if user_id %}
+          <a href="/workspace" class="btn btn-ghost" style="text-decoration: none;">workspace</a>
+          <a href="/profile" class="btn btn-ghost" style="text-decoration: none;">profile</a>
+          <a href="/auth/logout" class="btn btn-ghost" style="text-decoration: none;">logout</a>
+        {% else %}
+          <a href="/login" class="btn btn-ghost" style="text-decoration: none;">login</a>
+          <a href="/signup" class="btn btn-ghost" style="text-decoration: none;">signup</a>
+        {% endif %}
         <button class="btn btn-accent" id="shareBtn">share →</button>
         <button class="btn btn-ghost" id="downloadBtn">download ↓</button>
       </div>
@@ -90,6 +101,21 @@
           <div class="welcome-hint">click anywhere to start</div>
         </div>
       </div>
+
+      {% if is_protected %}
+      <div id="password-overlay">
+        <div class="password-card">
+          <div class="lock-icon">🔒</div>
+          <h2>Password Required</h2>
+          <p>This snippet is protected. Please enter the password to view the code.</p>
+          <div class="password-input-group">
+            <input type="password" id="unlockPassword" placeholder="Enter password..." />
+            <button id="unlockBtn" class="btn btn-accent">Unlock Snippet</button>
+          </div>
+          <div id="unlockError" class="error-text"></div>
+        </div>
+      </div>
+      {% endif %}
 
       <div id="editor-container"></div>
       
@@ -139,6 +165,16 @@
             your URL to look.
           </p>
 
+          {% if user_id %}
+          <div id="titleSection">
+            <div class="input-group">
+              <label for="snippetTitle">Snippet Title <span style="color: var(--error)">*</span></label>
+              <input type="text" id="snippetTitle" placeholder="Give your snippet a name..." maxlength="50" required />
+            </div>
+          </div>
+          <div class="modal-divider"></div>
+          {% endif %}
+
           <div class="option-cards">
             <div class="option-card selected" id="optionRandom">
               <div class="option-radio">
@@ -169,6 +205,28 @@
               <span class="option-badge badge-muted">Custom</span>
             </div>
           </div>
+
+          {% if user_id %}
+          <div class="modal-divider"></div>
+          <div id="advancedOptions">
+            <div class="option-row">
+              <div class="input-group">
+                <label for="snippetPassword">Password Protection (Optional)</label>
+                <input type="password" id="snippetPassword" placeholder="Set a password..." />
+              </div>
+              <div class="input-group">
+                <label for="expiryDays">Expiry (1-90 days)</label>
+                <select id="expiryDays">
+                  <option value="1">1 Day</option>
+                  <option value="7">7 Days</option>
+                  <option value="30" selected>30 Days</option>
+                  <option value="60">60 Days</option>
+                  <option value="90">90 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          {% endif %}
 
           <div id="customUrlSection">
             <div class="url-label-row">

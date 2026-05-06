@@ -19,6 +19,7 @@ export const langDot   = document.getElementById("langDot");
 export const langBadge = document.getElementById("langBadge");
 
 export const copyCodeBtn = document.getElementById("copyCodeBtn");
+export const searchBtn   = document.getElementById("searchBtn");
 export const shareBtn    = document.getElementById("shareBtn");
 export const newBtn      = document.getElementById("newBtn");
 export const downloadBtn = document.getElementById("downloadBtn");
@@ -44,6 +45,9 @@ export const urlHelper       = document.getElementById("urlHelper");
 export const customUrlSection = document.getElementById("customUrlSection");
 export const optionRandom    = document.getElementById("optionRandom");
 export const optionCustom    = document.getElementById("optionCustom");
+export const snippetPassword = document.getElementById("snippetPassword");
+export const expiryDays      = document.getElementById("expiryDays");
+export const snippetTitle    = document.getElementById("snippetTitle");
 
 export const editWarning        = document.getElementById("edit-warning");
 export const ewDismiss          = document.getElementById("ewDismiss");

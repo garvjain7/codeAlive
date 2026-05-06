@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up — CodeAlive</title>
+    <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="stylesheet" href="/static/css/auth.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap" rel="stylesheet" />
+  </head>
+  <body class="auth-body">
+    <div class="auth-glow-green"></div>
+    <div class="auth-glow-blue"></div>
+
+    <div class="auth-container">
+      <div class="auth-header">
+        <a href="/" class="auth-logo">
+          <span class="logo-pulse"></span>
+          Code<span class="logo-dim">Alive</span>
+        </a>
+        <h1 class="auth-title">Create <em>account.</em></h1>
+      </div>
+
+      <form id="signupForm" class="auth-form">
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input type="text" id="username" class="auth-input" placeholder="pick_a_unique_name" required>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" class="auth-input" placeholder="name@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" class="auth-input" placeholder="••••••••" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Retype Password</label>
+          <input type="password" id="confirmPassword" class="auth-input" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary auth-btn">Sign Up</button>
+      </form>
+
+      <div class="auth-links">
+        <a href="/login?next={{ request.query_params.get('next', '') }}">Already have an account? <strong>Login</strong></a>
+      </div>
+    </div>
+
+    <!-- ERROR BAR -->
+    <div id="error-bar"></div>
+
+    <script type="module" src="/static/auth.js"></script>
+  </body>
+</html>

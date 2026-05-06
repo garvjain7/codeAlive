@@ -11,17 +11,39 @@ import os
 import uvicorn
 
 from utils import validate_code, compress_code, generate_id
-from redis_client import redis_client
 from language_detector import detect_language
 from image_router import router as image_router
+from api_snippets import router as api_snippets_router, resolve_code_id
+from auth_middleware import AuthMiddleware
+from db.snippets import create_anonymous, get_snippet_by_code_id, create_user_snippet
+from datetime import datetime, timedelta
+import uuid
+
+from auth_router import router as auth_router
+from workspace_router import router as workspace_router
 from mailer import send_waitlist_email
 from mongodb import waitlist_collection
 from dotenv import load_dotenv
+import db.connection as db_conn
 
 load_dotenv()
 
-app = FastAPI()
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Connect to PostgreSQL
+    await db_conn.connect_db()
+    yield
+    # Shutdown: Close pool
+    await db_conn.close_db()
+
+app = FastAPI(lifespan=lifespan)
+app.add_middleware(AuthMiddleware)
 app.include_router(image_router)
+app.include_router(api_snippets_router)
+app.include_router(auth_router)
+app.include_router(workspace_router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -39,7 +61,7 @@ app.mount(
 _HIGHLIGHTS_RE = re.compile(r"^L\d+(-L\d+)?(,L\d+(-L\d+)?)*$", re.IGNORECASE)
 
 # Reserved path names that must never be treated as snippet code_ids
-_RESERVED = frozenset({"editor", "waitlist", "static", "s", "new", "robots.txt", "sitemap.xml"})
+_RESERVED = frozenset({"editor", "waitlist", "static", "s", "new", "robots.txt", "sitemap.xml", "login", "signup", "reset-password"})
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -93,12 +115,14 @@ class DetectRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def homepage(request: Request):
     """Marketing homepage."""
-    return templates.TemplateResponse("home.html", {"request": request})
+    user_id = getattr(request.state, "user_id", None)
+    return templates.TemplateResponse("home.html", {"request": request, "user_id": user_id})
 
 
 @app.get("/editor", response_class=HTMLResponse)
 async def editor(request: Request):
     """Fresh editor — no snippet loaded."""
+    user_id = getattr(request.state, "user_id", None)
     return templates.TemplateResponse(
         "index.html",
         {
@@ -106,8 +130,27 @@ async def editor(request: Request):
             "encoded":    "",
             "language":   "text",
             "highlights": "",
+            "user_id":    user_id
         },
     )
+
+
+@app.get("/workspace", response_class=HTMLResponse)
+async def workspace_page(request: Request):
+    """User workspace (snippets list). Strictly needs login."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        return RedirectResponse(url="/login?next=/workspace")
+    return templates.TemplateResponse("workspace.html", {"request": request, "user_id": user_id})
+
+
+@app.get("/profile", response_class=HTMLResponse)
+async def profile_page(request: Request):
+    """User profile page. Strictly needs login."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        return RedirectResponse(url="/login?next=/profile")
+    return templates.TemplateResponse("profile.html", {"request": request, "user_id": user_id})
 
 
 @app.get("/new")
@@ -120,6 +163,21 @@ async def new_snippet():
 async def waitlist_page(request: Request):
     """Waitlist landing page."""
     return templates.TemplateResponse("waitlist.html", {"request": request})
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Login page."""
+    return templates.TemplateResponse("login.html", {"request": request})
+
+@app.get("/signup", response_class=HTMLResponse)
+async def signup_page(request: Request):
+    """Signup page."""
+    return templates.TemplateResponse("signup.html", {"request": request})
+
+@app.get("/reset-password", response_class=HTMLResponse)
+async def reset_password_page(request: Request):
+    """Reset Password page."""
+    return templates.TemplateResponse("reset-password.html", {"request": request})
 
 
 @app.get("/robots.txt")
@@ -171,6 +229,9 @@ async def waitlist_join(email: str = Form(...)):
     # 3. Send confirmation email
     send_waitlist_email(email)
 
+    from utils import safe_log
+    safe_log("User joined waitlist", {"email": email})
+
     return JSONResponse({"ok": True, "message": "Email sent successfully"})
 
 
@@ -194,106 +255,158 @@ async def detect_language_endpoint(body: DetectRequest):
 
 @app.post("/save")
 async def save(
+    request: Request,
     code: str        = Form(...),
     language: str    = Form("text"),
     highlights: str  = Form(""),
     custom_code: str = Form(None),
+    password: str    = Form(None),
+    expiry: int      = Form(30),
+    title: str       = Form(None)
 ):
     """
-    Save a snippet to Redis and return its shareable URL.
-
-    Storage format
-    --------------
-    key   → code_id  (random 6-char slug, or user's custom slug)
-    value → {gzip+base64_encoded_code}/{language}[/{highlights}]
-
-    Example value:  H4sIAAAAAAAAA...==/python/L6-L14
-    All new shareable URLs are under /s/{code_id}.
+    Save a snippet to PostgreSQL and return its shareable URL.
+    Maintained for backward compatibility with frontend actions.js.
     """
     validate_code(code)
-
-    # ── Resolve code_id ───────────────────────────────────────────────────────
-    if custom_code:
-        custom_code = custom_code.strip()
-
-        if not custom_code:
-            raise HTTPException(400, "Custom code cannot be empty")
-        if len(custom_code) > 30:
-            raise HTTPException(400, "Custom code too long (max 30 chars)")
-        if custom_code in _RESERVED:
-            raise HTTPException(400, "That slug is reserved — pick another")
-        if redis_client.exists(custom_code):
-            raise HTTPException(400, "Custom code already taken")
-
-        code_id = custom_code
-
-    else:
-        code_id = generate_id()
-        while redis_client.exists(code_id):
-            code_id = generate_id()
-
-    # ── Sanitise language ─────────────────────────────────────────────────────
+    
     language = language.strip().lower() if language else "text"
     if not language or len(language) > 30:
         language = "text"
-
-    # ── Persist ───────────────────────────────────────────────────────────────
+        
     highlights = sanitise_highlights(highlights)
-    encoded    = compress_code(code)
-
-    # urlsafe-base64 never contains '/' so splitting on '/' is safe.
-    if highlights:
-        redis_client.set(code_id, f"{encoded}/{language}/{highlights}")
-    else:
-        redis_client.set(code_id, f"{encoded}/{language}")
-
-    return {"url": f"/s/{code_id}"}
+    encoded = compress_code(code)
+    
+    user_id = getattr(request.state, "user_id", None)
+    
+    if user_id and not title:
+        raise HTTPException(400, "Title is mandatory for registered users")
+    
+    async with db_conn.pool.acquire() as conn:
+        code_id = await resolve_code_id(conn, custom_code)
+        
+        if user_id:
+            # Default to 1 year expiration for now to satisfy NOT NULL constraint
+            # Actually, user wants custom expiry
+            if expiry < 1 or expiry > 90:
+                expiry = 30
+            
+            expires_at = datetime.now() + timedelta(days=expiry)
+            
+            pwd_hash = None
+            if password:
+                import bcrypt
+                salt = bcrypt.gensalt()
+                pwd_hash = bcrypt.hashpw(password.encode(), salt).decode()
+            
+            await create_user_snippet(
+                conn,
+                code_id=code_id,
+                owner_id=uuid.UUID(user_id),
+                encoded_content=encoded,
+                language=language,
+                highlights=highlights,
+                password_hash=pwd_hash,
+                expires_at=expires_at,
+                title=title
+            )
+        else:
+            # Save as anonymous snippet
+            await create_anonymous(
+                conn,
+                code_id=code_id,
+                encoded_content=encoded,
+                language=language,
+                highlights=highlights
+            )
+        
+        return {"url": f"/s/{code_id}"}
 
 
 @app.get("/s/{code_id}", response_class=HTMLResponse)
 async def view_snippet(request: Request, code_id: str):
     """
-    Serve a shared snippet — new canonical URL format (/s/{code_id}).
+    Serve a shared snippet with access control and password protection.
     """
-    stored = redis_client.get(code_id)
-    if not stored:
-        raise HTTPException(404, "Snippet not found")
+    async with db_conn.pool.acquire() as conn:
+        snippet = await get_snippet_by_code_id(conn, code_id)
+        if not snippet:
+            raise HTTPException(404, "Snippet not found")
+        
+        # Check if it's a user snippet (REQUIRES LOGIN)
+        if snippet["type"] == "user":
+            user_id = getattr(request.state, "user_id", None)
+            
+            # If not logged in, redirect to login page for ANY user snippet
+            if not user_id:
+                return RedirectResponse(url=f"/login?next={request.url.path}")
 
-    encoded, language, highlights = _parse_stored(stored)
+            # Check if it has expired
+            if snippet["expires_at"] < datetime.now():
+                raise HTTPException(410, "Snippet has expired")
+            
+            # Check password protection
+            if snippet["is_password_protected"]:
+                # Check if access already granted
+                from db.access_control import get_or_create_access
+                access = await get_or_create_access(conn, snippet["id"], uuid.UUID(user_id))
+                if access.get("first_success_at"):
+                    # Already verified, show snippet
+                    return templates.TemplateResponse(
+                        "index.html",
+                        {
+                            "request":    request,
+                            "encoded":    snippet["encoded_content"],
+                            "language":   snippet["language"],
+                            "highlights": snippet["highlights"],
+                            "user_id":    user_id,
+                            "is_protected": False
+                        },
+                    )
 
-    return templates.TemplateResponse(
-        "index.html",
-        {
-            "request":    request,
-            "encoded":    encoded,
-            "language":   language,
-            "highlights": highlights,
-        },
-    )
+                # Show password prompt instead of snippet content
+                return templates.TemplateResponse(
+                    "index.html",
+                    {
+                        "request":    request,
+                        "encoded":    "",
+                        "language":   "text",
+                        "highlights": "",
+                        "user_id":    user_id,
+                        "is_protected": True,
+                        "code_id":    code_id
+                    },
+                )
+            
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request":    request,
+                "encoded":    snippet["encoded_content"],
+                "language":   snippet["language"],
+                "highlights": snippet["highlights"],
+                "user_id":    getattr(request.state, "user_id", None),
+                "is_protected": False
+            },
+        )
 
 
 @app.get("/{code_id}", response_class=HTMLResponse)
 async def legacy_snippet(code_id: str):
     """
     Legacy route — kept for backward compatibility with old shared links.
-
-    If the code_id exists in Redis, issue a 301 permanent redirect to the
-    canonical /s/{code_id} URL so browsers and search engines update their
-    records automatically. Old links never break.
-
-    Reserved path names that somehow fall through to this catch-all
-    return 404 cleanly.
     """
     if code_id in _RESERVED:
         raise HTTPException(404, "Not found")
 
-    stored = redis_client.get(code_id)
-    if not stored:
-        raise HTTPException(404, "Snippet not found")
+    async with db_conn.pool.acquire() as conn:
+        snippet = await get_snippet_by_code_id(conn, code_id)
+        if not snippet:
+            raise HTTPException(404, "Snippet not found")
 
-    return RedirectResponse(url=f"/s/{code_id}", status_code=301)
+        return RedirectResponse(url=f"/s/{code_id}", status_code=301)
 
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("app:app", host="0.0.0.0", port=port, reload=True)

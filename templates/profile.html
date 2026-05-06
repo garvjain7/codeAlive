@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile | CodeAlive</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            padding: 40px;
+            background: var(--modal-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+        h1 { font-family: 'Syne', sans-serif; color: var(--accent); margin-bottom: 20px; }
+        p { color: var(--muted); margin-bottom: 30px; line-height: 1.6; }
+        .back-btn { text-decoration: none; color: var(--text); padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; transition: all 0.2s; }
+        .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Profile</h1>
+        <p>Manage your account settings and preferences here. This feature is currently under development and will be available soon.</p>
+        <a href="/editor" class="back-btn">← Back to Editor</a>
+    </div>
+</body>
+</html>
