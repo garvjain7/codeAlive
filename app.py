@@ -16,11 +16,13 @@ from image_router import router as image_router
 from api_snippets import router as api_snippets_router, resolve_code_id
 from auth_middleware import AuthMiddleware
 from db.snippets import create_anonymous, get_snippet_by_code_id, create_user_snippet
+from db.users import get_user_by_id
 from datetime import datetime, timedelta
 import uuid
 
 from auth_router import router as auth_router
 from workspace_router import router as workspace_router
+from profile_router import router as profile_router
 from mailer import send_waitlist_email
 from mongodb import waitlist_collection
 from dotenv import load_dotenv
@@ -44,6 +46,7 @@ app.include_router(image_router)
 app.include_router(api_snippets_router)
 app.include_router(auth_router)
 app.include_router(workspace_router)
+app.include_router(profile_router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -116,13 +119,25 @@ class DetectRequest(BaseModel):
 async def homepage(request: Request):
     """Marketing homepage."""
     user_id = getattr(request.state, "user_id", None)
-    return templates.TemplateResponse("home.html", {"request": request, "user_id": user_id})
+    user_email = None
+    if user_id:
+        async with db_conn.pool.acquire() as conn:
+            user = await get_user_by_id(conn, uuid.UUID(user_id))
+            if user:
+                user_email = user["email"]
+    return templates.TemplateResponse("home.html", {"request": request, "user_id": user_id, "user_email": user_email})
 
 
 @app.get("/editor", response_class=HTMLResponse)
 async def editor(request: Request):
     """Fresh editor — no snippet loaded."""
     user_id = getattr(request.state, "user_id", None)
+    user_email = None
+    if user_id:
+        async with db_conn.pool.acquire() as conn:
+            user = await get_user_by_id(conn, uuid.UUID(user_id))
+            if user:
+                user_email = user["email"]
     return templates.TemplateResponse(
         "index.html",
         {
@@ -130,7 +145,8 @@ async def editor(request: Request):
             "encoded":    "",
             "language":   "text",
             "highlights": "",
-            "user_id":    user_id
+            "user_id":    user_id,
+            "user_email": user_email
         },
     )
 
@@ -141,7 +157,14 @@ async def workspace_page(request: Request):
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
         return RedirectResponse(url="/login?next=/workspace")
-    return templates.TemplateResponse("workspace.html", {"request": request, "user_id": user_id})
+    
+    user_email = None
+    async with db_conn.pool.acquire() as conn:
+        user = await get_user_by_id(conn, uuid.UUID(user_id))
+        if user:
+            user_email = user["email"]
+            
+    return templates.TemplateResponse("workspace.html", {"request": request, "user_id": user_id, "user_email": user_email})
 
 
 @app.get("/profile", response_class=HTMLResponse)

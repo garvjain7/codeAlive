@@ -122,3 +122,12 @@ document.addEventListener("keydown", (e) => {
     hideImageModal();
   }
 });
+
+import { initTheme, toggleTheme as baseToggle } from "./theme.js";
+
+export function toggleTheme() {
+  baseToggle(showToast);
+}
+
+// Auto-init theme
+initTheme();

@@ -5,7 +5,7 @@ import bcrypt
 import secrets
 import hashlib
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 import db.connection as db_conn
 from db.users import get_user_by_identifier, get_user_by_id, create_user
@@ -101,7 +101,7 @@ async def forgot_password(data: ForgotPasswordRequest):
             # Generate secure token
             token = secrets.token_urlsafe(32)
             # Link expires in 20 minutes
-            expires_at = datetime.now(timezone.utc) + timedelta(minutes=20)
+            expires_at = datetime.utcnow() + timedelta(minutes=20)
             
             # Store in database (hash the token for security)
             token_hash = hashlib.sha256(token.encode()).hexdigest()
@@ -146,9 +146,15 @@ async def reset_password(data: ResetPasswordRequest):
     return {"ok": True, "message": "Password updated successfully"}
 
 @router.get("/logout")
-async def logout(request: Request, response: Response):
-    response.delete_cookie("session_id")
-    return RedirectResponse(url="/")
+async def logout(request: Request):
+    session_id = request.cookies.get("session_id")
+    # Invalidate the session in Redis so the token can't be reused
+    if session_id:
+        await async_redis.delete(f"session:{session_id}")
+    redirect = RedirectResponse(url="/", status_code=302)
+    # Must delete on the actual response object being sent to the browser
+    redirect.delete_cookie("session_id", path="/", httponly=True, samesite="lax")
+    return redirect
 
 @router.get("/me")
 async def get_me(request: Request):

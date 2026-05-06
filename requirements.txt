@@ -7,3 +7,5 @@ codelang_detect
 pymongo[srv]
 Pillow
 python-multipart==0.0.9
+asyncpg==0.29.0
+bcrypt==4.1.2

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request, Form
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from db.connection import get_conn
 from db.snippets import create_anonymous, create_user_snippet, get_snippet_by_code_id
 from db.access_control import get_or_create_access, increment_failed_attempt, mark_success
@@ -90,7 +90,7 @@ async def create_user(data: UserSnippetCreate, request: Request):
     if data.expires_in_days < 1 or data.expires_in_days > 90:
         raise HTTPException(400, "Expiry must be between 1 and 90 days")
         
-    expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
+    expires_at = datetime.utcnow() + timedelta(days=data.expires_in_days)
     
     async with get_conn() as conn:
         code_id = await resolve_code_id(conn, data.custom_code)

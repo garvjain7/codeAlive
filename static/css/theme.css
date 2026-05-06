@@ -1,0 +1,49 @@
+/* ── CodeAlive Shared Design System & Themes ───────────────────────── */
+
+:root {
+    /* DARK THEME (Default) */
+    color-scheme: dark;
+    --bg: #0e1014;
+    --bg2: #12151c;
+    --bg3: #161a22;
+    --bg-alt: #0a0c0f;
+    --surface: #12151c;
+    --surface-alt: #0d1016;
+    --border: rgba(255, 255, 255, 0.07);
+    --border2: rgba(255, 255, 255, 0.13);
+    --border-hover: #2e3340;
+    --text: #d4d8e0;
+    --text2: rgba(212, 216, 224, 0.65);
+    --text3: rgba(212, 216, 224, 0.35);
+    --text-muted: #7a8190;
+    --text-subtle: #454952;
+    --accent: #3fe0a0;
+    --accent-glow: rgba(63, 224, 160, 0.09);
+    --error: #f07575;
+    --error-glow: rgba(240, 117, 117, 0.09);
+    --shadow: rgba(0, 0, 0, 0.5);
+}
+
+[data-theme="light"] {
+    /* LIGHT THEME */
+    color-scheme: light;
+    --bg: #f8fafc;
+    --bg2: #f1f5f9;
+    --bg3: #e2e8f0;
+    --bg-alt: #ffffff;
+    --surface: #ffffff;
+    --surface-alt: #f1f5f9;
+    --border: rgba(0, 0, 0, 0.06);
+    --border2: rgba(0, 0, 0, 0.1);
+    --border-hover: #cbd5e1;
+    --text: #1e293b;
+    --text2: rgba(30, 41, 59, 0.7);
+    --text3: rgba(30, 41, 59, 0.4);
+    --text-muted: #64748b;
+    --text-subtle: #94a3b8;
+    --accent: #10b981;
+    --accent-glow: rgba(16, 185, 129, 0.1);
+    --error: #ef4444;
+    --error-glow: rgba(239, 68, 68, 0.1);
+    --shadow: rgba(0, 0, 0, 0.05);
+}

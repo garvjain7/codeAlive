@@ -4,6 +4,7 @@
  */
 
 import * as dom from './workspace-dom.js';
+import { toggleTheme } from './theme.js';
 
 // ── STATE ──────────────────────────────────────────────────
 let currentView = 'created'; 
@@ -141,14 +142,14 @@ function createCardHTML(snippet) {
   
   let progressColor = 'var(--green)';
   if (percent < 20) progressColor = 'var(--error)';
-  else if (percent < 50) progressColor = 'var(--amber)';
+  else if (percent < 50) progressColor = '#f59e0b'; // Amber
 
   const daysLeft = Math.ceil(remaining / (1000 * 60 * 60 * 24));
   const expiryText = isExpired ? 'Expired' : `${daysLeft} days remaining`;
   const visibilityLabel = is_password_protected ? 'Protected' : 'Public';
 
   return `
-    <div class="snippet-card">
+    <div class="snippet-card" data-code-id="${code_id}">
       <div class="card-top">
         <div class="card-info">
           <h3 class="snippet-title">${title || 'Untitled Snippet'}</h3>
@@ -158,7 +159,17 @@ function createCardHTML(snippet) {
             <span class="badge ${is_password_protected ? 'badge-protected' : 'badge-visibility'}">${visibilityLabel}</span>
           </div>
         </div>
-        <button class="btn-more" title="More actions">⋮</button>
+        <div style="position: relative;">
+          <button class="btn-more" data-code-id="${code_id}">⋮</button>
+          <div class="action-menu" id="menu-${code_id}">
+            <button class="menu-item" data-action="password" data-code-id="${code_id}">
+              ${is_password_protected ? '🔑 Reset Password' : '🔒 Add Password'}
+            </button>
+            <button class="menu-item" data-action="expiry" data-code-id="${code_id}">⏳ Extend Expiry</button>
+            <div class="dropdown-divider"></div>
+            <button class="menu-item danger" data-action="delete" data-code-id="${code_id}">🗑️ Delete Snippet</button>
+          </div>
+        </div>
       </div>
 
       <div class="expiry-section">
@@ -190,6 +201,7 @@ function setupEventListeners() {
 
   document.addEventListener('click', () => {
     dom.profileDropdown.classList.remove('show');
+    document.querySelectorAll('.action-menu.show').forEach(m => m.classList.remove('show'));
   });
 
   dom.tabButtons.forEach(btn => {
@@ -200,19 +212,100 @@ function setupEventListeners() {
     item.addEventListener('click', () => renderView(item.dataset.view));
   });
 
-  dom.snippetList.addEventListener('click', (e) => {
+  dom.snippetList.addEventListener('click', async (e) => {
+    const codeId = e.target.dataset.codeId;
+
+    // 1. Copy Link
     if (e.target.classList.contains('btn-copy-link')) {
       const url = e.target.dataset.url;
       navigator.clipboard.writeText(url).then(() => showToast('Link copied to clipboard!'));
+      return;
     }
+
+    // 2. Toggle Menu
     if (e.target.classList.contains('btn-more')) {
-      showToast('Action menu coming soon');
+      e.stopPropagation();
+      const menu = document.getElementById(`menu-${codeId}`);
+      document.querySelectorAll('.action-menu.show').forEach(m => {
+        if (m !== menu) m.classList.remove('show');
+      });
+      menu.classList.toggle('show');
+      return;
+    }
+
+    // 3. Menu Actions
+    if (e.target.classList.contains('menu-item')) {
+      const action = e.target.dataset.action;
+      handleMenuAction(action, codeId);
     }
   });
 
   dom.themeToggle.addEventListener('click', () => {
-    showToast('Dark theme is default. Theme switching coming soon.');
+    toggleTheme(showToast);
   });
+}
+
+async function handleMenuAction(action, codeId) {
+  if (action === 'delete') {
+    if (!confirm('Are you sure you want to delete this snippet? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/workspace/snippets/${codeId}`, { method: 'DELETE' });
+      if (res.ok) {
+        showToast('Snippet deleted');
+        fetchData(); // Refresh list
+      }
+    } catch (err) {
+      showToast('Failed to delete snippet');
+    }
+  }
+
+  if (action === 'password') {
+    const pwd = prompt('Enter new password for this snippet:');
+    if (!pwd) return;
+    try {
+      const res = await fetch(`/api/workspace/snippets/${codeId}/password`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd })
+      });
+      if (res.ok) {
+        showToast('Password updated');
+        fetchData();
+      }
+    } catch (err) {
+      showToast('Failed to update password');
+    }
+  }
+
+  if (action === 'expiry') {
+    const days = prompt('Extend expiry by how many days? (Max lifespan is 90 days from creation)', '30');
+    if (!days) return;
+    const daysInt = parseInt(days);
+    if (isNaN(daysInt) || daysInt < 1) {
+      alert('Please enter a valid number of days.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/workspace/snippets/${codeId}/expiry`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: daysInt })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (data.capped) {
+          showToast('Snippet extended to its maximum 90-day lifespan');
+        } else {
+          showToast(`Expiry extended by ${daysInt} days`);
+        }
+        fetchData();
+      } else {
+        showToast(data.detail || 'Failed to update expiry');
+      }
+    } catch (err) {
+      showToast('Failed to update expiry');
+    }
+  }
 }
 
 function showToast(msg) {

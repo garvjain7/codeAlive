@@ -4,34 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile | CodeAlive</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            text-align: center;
-        }
-        .container {
-            max-width: 600px;
-            padding: 40px;
-            background: var(--modal-bg);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-        }
-        h1 { font-family: 'Syne', sans-serif; color: var(--accent); margin-bottom: 20px; }
-        p { color: var(--muted); margin-bottom: 30px; line-height: 1.6; }
-        .back-btn { text-decoration: none; color: var(--text); padding: 10px 20px; border: 1px solid var(--border); border-radius: 8px; transition: all 0.2s; }
-        .back-btn:hover { border-color: var(--accent); color: var(--accent); }
-    </style>
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/profile.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <h1>Profile</h1>
-        <p>Manage your account settings and preferences here. This feature is currently under development and will be available soon.</p>
-        <a href="/editor" class="back-btn">← Back to Editor</a>
+    <!-- TOP NAVIGATION -->
+    <nav id="top-nav">
+        <div class="nav-left">
+            <a href="/" class="logo">Code<span>Alive</span></a>
+        </div>
+        <div class="nav-right" style="display: flex; gap: 12px;">
+            <a href="/workspace" class="btn-secondary" style="padding: 8px 16px;">Workspace</a>
+            <a href="/editor" class="btn-secondary" style="padding: 8px 16px; border-color: var(--accent); color: var(--accent);">+ New</a>
+        </div>
+    </nav>
+
+    <div class="profile-layout">
+        <!-- LEFT SIDEBAR: Identity -->
+        <aside class="profile-sidebar">
+            <div class="id-card">
+                <div class="profile-avatar-large" id="avatarLarge">?</div>
+                <h2 class="profile-username" id="usernameDisplay">---</h2>
+                <p class="profile-email-masked" id="emailMasked">---@---.com</p>
+                <div class="joined-date" id="joinedDate">Joined ---</div>
+            </div>
+
+            <div class="action-stack">
+                <button class="btn-secondary">Edit Account</button>
+                <button class="btn-secondary">Privacy & Security</button>
+                <a href="/auth/logout" class="btn-secondary" style="color: var(--error);">Logout</a>
+                <button class="btn-danger-text">Delete account permanently</button>
+            </div>
+        </aside>
+
+        <!-- RIGHT CONTENT: Dashboard -->
+        <main class="profile-content">
+            <!-- Stats -->
+            <section>
+                <h3 class="section-title">Activity Insights <span>Real-time overview</span></h3>
+                <div class="activity-stats">
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-snippets">0</div>
+                        <div class="stat-lab">Total Snippets</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-protected">0</div>
+                        <div class="stat-lab">Protected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-val" id="stat-languages">0</div>
+                        <div class="stat-lab">Languages</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Language Distribution -->
+            <section>
+                <h3 class="section-title">Stack Profile <span>Language distribution</span></h3>
+                <div class="lang-chart-wrap" id="langChart">
+                    <!-- Bars injected via JS -->
+                </div>
+            </section>
+
+            <!-- Recent Snippets -->
+            <section>
+                <h3 class="section-title">Recent Activity <span>Last 5 snippets</span></h3>
+                <div class="recent-list" id="recentList">
+                    <!-- Items injected via JS -->
+                </div>
+            </section>
+
+            <!-- Danger Zone -->
+            <section class="danger-box">
+                <h3>Export Data</h3>
+                <p>Download a full archive of all your snippets in JSON format for offline backup.</p>
+                <button class="btn-secondary" style="width: auto;">Request Archive</button>
+            </section>
+        </main>
     </div>
+
+    <!-- TOAST -->
+    <div id="toast">Update successful</div>
+
+    <script type="module" src="/static/profile.js"></script>
 </body>
 </html>

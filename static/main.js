@@ -33,6 +33,7 @@ import { initUnlock } from "./unlock.js";
 import "./ui.js";
 import "./modal.js";
 import "./actions.js";
+import "./theme.js";
 import { editorContainer, getView } from "./dom.js";
 
 // ── Wire detection → ui + editor ─────────────────────────────────────────────

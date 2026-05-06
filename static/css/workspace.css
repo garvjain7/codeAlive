@@ -5,28 +5,18 @@
 ═══════════════════════════════════════════════════════════════ */
 
 :root {
-  --bg:           #080a0e;
-  --bg2:          #0d1017;
-  --bg3:          #111520;
-  --sidebar-bg:   #090c12;
-  --nav-bg:       rgba(8, 10, 14, 0.82);
-  --border:       rgba(255, 255, 255, 0.07);
-  --border2:      rgba(255, 255, 255, 0.13);
   --green:        #3fe0a0;
   --green-dim:    rgba(63, 224, 160, 0.1);
   --blue:         #5ba3ff;
   --blue-dim:     rgba(91, 163, 255, 0.1);
-  --text:         #e2e8f4;
-  --text2:        rgba(226, 232, 244, 0.55);
-  --text3:        rgba(226, 232, 244, 0.28);
-  --accent:       #3fe0a0;
-  --error:        #f07575;
   --mono:         'JetBrains Mono', monospace;
   --serif:        'Syne', sans-serif;
   --radius:       8px;
   --radius-lg:    12px;
   --nav-h:        64px;
   --sidebar-w:    260px;
+  --sidebar-bg:   var(--bg2);
+  --nav-bg:       var(--bg);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -241,6 +231,33 @@ body {
   transition: background 0.2s, color 0.2s;
 }
 .btn-more:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+
+/* ACTION DROPDOWN */
+.card-actions { position: relative; }
+.action-menu {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 180px; background: var(--bg3); border: 0.5px solid var(--border2);
+  border-radius: var(--radius); padding: 6px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: none; flex-direction: column; z-index: 50;
+  animation: menuIn 0.2s ease-out;
+}
+.action-menu.show { display: flex; }
+.menu-item {
+  padding: 10px 12px; font-size: 11px; color: var(--text2);
+  text-decoration: none; border-radius: 4px; cursor: pointer;
+  background: transparent; border: none; text-align: left;
+  font-family: var(--mono); transition: all 0.15s;
+  display: flex; align-items: center; gap: 8px;
+}
+.menu-item:hover { background: rgba(255,255,255,0.04); color: var(--text); }
+.menu-item.danger { color: var(--error); }
+.menu-item.danger:hover { background: rgba(240, 117, 117, 0.08); }
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* EMPTY STATE */
 .empty-state {

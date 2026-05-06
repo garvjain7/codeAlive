@@ -23,9 +23,10 @@
 - **Email Notifications** — Receive confirmation and launch updates via automated email system.
 
 ### Advanced
+- **Strict Read-Only View Mode** — Shared links are strictly non-editable to prevent accidental changes.
+- **Secure Snippet Protection** — Password-protect your snippets with automatic expiry and brute-force protection.
 - **Line Highlighting** — Select any lines to mark them with colored bands that travel with the link. Supports multiple distinct highlight colors in a single snippet.
 - **Interactive Code Widgets** — Attach screenshots or error logs inline with your code snippets using CodeMirror 6 `WidgetTypes` (e.g., `[image:xyz]`).
-- **Multi-language Detection** — Support for multiple languages in a single shareable file (In Dev).
 
 ---
 
@@ -36,10 +37,11 @@
 | Frontend | HTML5, Vanilla CSS, JavaScript (ES Modules / ESM) |
 | Code Editor | **CodeMirror 6** (Loaded via `esm.sh`, no build step required) |
 | Backend | Python 3.10+, FastAPI, Uvicorn |
-| In-Memory Cache | Redis (Snippet storage) |
-| Persistent Database | MongoDB Atlas (Images & Waitlist) |
+| Database | **PostgreSQL** (Snippet storage, Auth, Access Control) |
+| In-Memory Store | **Redis** (Session management) |
+| File Storage | MongoDB Atlas (Images & Waitlist) |
 | Email System | Gmail SMTP (smtplib) |
-| Fonts | JetBrains Mono, Fraunces (Google Fonts) |
+| Fonts | JetBrains Mono, Syne (Google Fonts) |
 | Hosting | Render |
 
 ---
@@ -48,21 +50,15 @@
 
 ```
 codealive/
-├── app.py                  # FastAPI app — routes, save/load logic
-├── language_detector.py    # Language detection via codelang-detect
-├── mongodb.py              # MongoDB Atlas connection & schemas
-├── mailer.py               # SMTP client for email notifications
-├── redis_client.py         # Redis connection for snippets
-├── image_service.py        # Image compression & storage logic
-├── utils.py                # Validation, gzip compression, ID generation
-├── templates/
-│   ├── index.html          # Main Editor UI
-│   ├── home.html           # Marketing Landing Page
-│   └── waitlist.html       # Waitlist Signup Page
-└── static/
-    ├── css/                # Modular stylesheets (style.css, home.css)
-    ├── *.js                # Client-side ESM logic (main, editor, detection, codec)
-    └── images/             # Static assets
+├── app.py                  # FastAPI entry point
+├── api_snippets.py         # Snippet CRUD & Verification API
+├── auth_router.py          # Authentication (Login/Signup) logic
+├── db/                     # PostgreSQL Data Access Layer
+├── static/                 # Frontend assets (ESM JS, CSS)
+├── templates/              # Jinja2 HTML templates
+├── redis_client.py         # Redis connection for sessions
+├── mongodb.py              # MongoDB connection for images
+└── requirements.txt        # Project dependencies
 ```
 
 ---
@@ -71,9 +67,10 @@ codealive/
 
 ### Prerequisites
 - Python 3.10+
-- Redis running on `localhost:6379`
-- MongoDB Atlas account (or local MongoDB)
-- Gmail App Password (for email features)
+- PostgreSQL 14+
+- Redis (running on `localhost:6379` or via `REDIS_URL`)
+- MongoDB Atlas account (for images)
+- Gmail App Password (for notifications)
 
 ### Setup
 
@@ -90,10 +87,10 @@ pip install -r requirements.txt
 ```
 
 ### Environment Variables
-The application requires the following variables in a `.env` file:
-- `REDIS_URL`: Connection string for Redis.
-- `MONGO_URI`: Connection string for MongoDB Atlas.
-- `MONGO_DB_NAME`: Database name (defaults to `codealive`).
+The application requires a `.env` file with the following:
+- `REDIS_URL`: Redis connection string (for sessions).
+- `PG_HOST`, `PG_USER`, `PG_PASSWORD`, `PG_DB`: PostgreSQL credentials.
+- `MONGO_URI`: MongoDB connection string (for images).
 - `MAIL_EMAIL`: Your Gmail address.
 - `MAIL_PASSWORD`: Your Gmail App Password.
 

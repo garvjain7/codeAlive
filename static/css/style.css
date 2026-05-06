@@ -27,6 +27,22 @@
     --modal-surface: #0d1016;
 }
 
+[data-theme="light"] {
+    --bg: #f8fafc;
+    --editor-bg: #ffffff;
+    --bar-bg: #f8fafc;
+    --border: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --accent: #10b981;
+    --accent-dim: #6ee7b7;
+    --text: #1e293b;
+    --muted: #64748b;
+    --subtle: #94a3b8;
+    --ln-text: #94a3b8;
+    --modal-bg: #ffffff;
+    --modal-surface: #f1f5f9;
+}
+
 html,
 body {
     height: 100%;
@@ -261,6 +277,28 @@ body {
     background: var(--accent-dim);
     color: #1a4034;
     cursor: not-allowed;
+}
+
+.nav-avatar-sm {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--accent-glow);
+    border: 1px solid rgba(63, 224, 160, 0.2);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.nav-avatar-sm:hover {
+    transform: scale(1.08);
+    border-color: var(--accent);
+    background: rgba(63, 224, 160, 0.15);
 }
 
 /* ── EDITOR LAYOUT ──────────────────────────────────── */
@@ -887,12 +925,23 @@ body {
 }
 
 /* ── CUSTOM URL SECTION ─────────────────────────────── */
+#customUrlSection {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+    transition:
+        max-height 0.25s ease-out,
+        opacity 0.2s ease,
+        margin 0.25s ease;
+}
 
 
 #customUrlSection.open {
     max-height: 130px;
     opacity: 1;
     margin-bottom: 22px;
+    pointer-events: all;
 }
 
 .url-label-row {

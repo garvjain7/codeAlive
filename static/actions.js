@@ -201,3 +201,12 @@ downloadBtn.addEventListener("click", async () => {
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 });
+
+// ── THEME TOGGLE ─────────────────────────────────────────────────────────────
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', async () => {
+    const { toggleTheme } = await import('./theme.js');
+    toggleTheme();
+  });
+}

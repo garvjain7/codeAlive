@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Workspace | CodeAlive</title>
-    <link rel="stylesheet" href="/static/css/workspace.css">
+    <link rel="stylesheet" href="/static/css/theme.css?v=1.1">
+    <link rel="stylesheet" href="/static/css/workspace.css?v=1.1">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@700&display=swap" rel="stylesheet">
 </head>
@@ -60,11 +61,6 @@
                             <span class="tree-icon">🔓</span>
                             <span class="tree-label">Accessed Snippets</span>
                         </div>
-                        <div class="tree-item disabled">
-                            <span class="tree-icon">🏢</span>
-                            <span class="tree-label">Organization</span>
-                            <span class="badge-soon">Soon</span>
-                        </div>
                     </div>
                 </div>
             </nav>
@@ -99,8 +95,7 @@
                 <!-- SECTION 2: QUICK ACTIONS -->
                 <div class="quick-actions">
                     <a href="/editor" class="action-btn primary">+ New Snippet</a>
-                    <a href="/editor" class="action-btn">Paste & Share</a>
-                    <button class="action-btn disabled">Import Code</button>
+                    <a href="/profile" class="action-btn">Manage Profile</a>
                 </div>
 
                 <!-- SECTION 3: TABS -->
@@ -122,8 +117,8 @@
     </div>
 
     <!-- TOAST -->
-    <div id="toast">Copied!</div>
+    <div id="toast"></div>
 
-    <script type="module" src="/static/workspace.js"></script>
+    <script type="module" src="/static/workspace.js?v=1.1"></script>
 </body>
 </html>

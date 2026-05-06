@@ -13,7 +13,8 @@
     <meta property="og:url" content="https://codealive.onrender.com" />
     <title>CodeAlive — Share Code. Live.</title>
 
-    <link rel="stylesheet" href="/static/css/home.css" />
+    <link rel="stylesheet" href="/static/css/theme.css?v=1.1" />
+    <link rel="stylesheet" href="/static/css/home.css?v=1.1" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&display=swap" rel="stylesheet" />
 
@@ -43,16 +44,18 @@
       </ul>
 
       <div class="nav-right">
-        <a href="/editor" class="btn-ghost-sm" target="_blank" rel="noopener">Open Editor</a>
-        <a href="/waitlist" class="btn-green-sm" target="_blank" rel="noopener">Join Waitlist →</a>
         {% if user_id %}
-          <a href="/workspace" class="btn-ghost-sm">Workspace</a>
-          <a href="/profile" class="btn-ghost-sm">Profile</a>
+          <a href="/workspace" class="btn-green-sm">Workspace</a>
           <a href="/auth/logout" class="btn-ghost-sm">Logout</a>
+          <a href="/profile" class="nav-avatar" id="homeAvatar">
+            {{ user_email[0].upper() if user_email else 'U' }}
+          </a>
         {% else %}
+          <a href="/editor" class="btn-ghost-sm">Editor</a>
           <a href="/login" class="btn-ghost-sm">Login</a>
           <a href="/signup" class="btn-green-sm">Sign Up →</a>
         {% endif %}
+        <button id="themeToggle" class="btn-ghost-sm" style="padding: 0 8px; font-size: 16px; cursor: pointer;">🌓</button>
         
         <button id="mobile-menu-toggle" aria-label="Toggle Menu">
           <span class="bar"></span>
@@ -112,10 +115,15 @@
           </p>
 
           <div class="hero-actions">
-            <a href="/editor" class="btn-primary" target="_blank" rel="noopener">
-              <span class="btn-icon">&#8594;</span>
-              Start sharing free
-            </a>
+            {% if user_id %}
+              <a href="/workspace" class="btn-primary btn-large">
+                Go to Workspace →
+              </a>
+            {% else %}
+              <a href="/editor" class="btn-primary btn-large">
+                Start Coding Now — free
+              </a>
+            {% endif %}
             <a href="/waitlist" class="btn-outline-collab" target="_blank" rel="noopener">
               <span class="collab-live-dot"></span>
               Join Room Waitlist
@@ -516,9 +524,15 @@
         </h2>
         <p class="cta-sub">No login. No setup. No friction. Just code and a link.</p>
         <div class="cta-actions">
-          <a href="/editor" class="btn-primary btn-large" target="_blank" rel="noopener">
-            Open the Editor — it's free →
-          </a>
+          {% if user_id %}
+            <a href="/workspace" class="btn-primary btn-large">
+              Go to Your Workspace →
+            </a>
+          {% else %}
+            <a href="/editor" class="btn-primary btn-large">
+              Open the Editor — it's free →
+            </a>
+          {% endif %}
           <a href="/waitlist" class="btn-outline-lg" target="_blank" rel="noopener">
             Join Room Waitlist
           </a>
@@ -546,6 +560,6 @@
     </footer>
 
     <script src="/static/mobile-nav.js"></script>
-    <script src="/static/home.js"></script>
+    <script src="/static/home.js?v=1.1"></script>
   </body>
 </html>
