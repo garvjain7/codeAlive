@@ -29,6 +29,7 @@ class UserSnippetCreate(BaseModel):
 class SnippetVerify(BaseModel):
     password: str
 
+import uuid
 import bcrypt
 
 def hash_password(password: str) -> str:
@@ -103,7 +104,7 @@ async def create_user(data: UserSnippetCreate, request: Request):
         await create_user_snippet(
             conn,
             code_id=code_id,
-            owner_id=owner_id,
+            owner_id=uuid.UUID(owner_id),
             encoded_content=compress_code(data.code),
             language=data.language or "text",
             highlights=data.highlights or "",
@@ -120,55 +121,54 @@ async def get_snippet(code_id: str, request: Request):
         snippet = await get_snippet_by_code_id(conn, code_id)
         if not snippet:
             raise HTTPException(404, "Snippet not found")
-            
+
         if snippet["type"] == "anonymous":
             return {"snippet": snippet}
-            
-        # User snippet logic
-        if snippet["expires_at"] < datetime.now(): # tz aware vs naive
-            raise HTTPException(404, "Snippet has expired")
-            
+
+        # User snippet from here on
+        user_id = getattr(request.state, "user_id", None)
+        if not user_id:
+            raise HTTPException(401, "Login required")
+
+        if snippet["expires_at"] < datetime.utcnow():
+            raise HTTPException(410, "Snippet has expired")
+
         if snippet["is_password_protected"]:
-            # Need login context
-            user_id = getattr(request.state, "user_id", None)
-            if not user_id:
-                raise HTTPException(401, "Login required to access this snippet")
-                
-            # Check access control
-            access = await get_or_create_access(conn, snippet["id"], user_id)
-            
-            if access.get("locked_until") and access["locked_until"] > datetime.now():
-                raise HTTPException(403, "Access locked due to too many failed attempts")
-                
-            # If not successfully accessed yet, require verify
-            if not access.get("first_success_at"):
-                raise HTTPException(403, "Password required", headers={"X-Requires-Password": "true"})
-                
-        return {"snippet": snippet}
+            raise HTTPException(403, "Password required", headers={"X-Requires-Password": "true"})
+
+        clean_snippet = {k: v for k, v in dict(snippet).items() if k != "password_hash"}
+        return {"snippet": clean_snippet}
+
 
 @router.post("/{code_id}/verify")
 async def verify_snippet(code_id: str, data: SnippetVerify, request: Request):
     user_id = getattr(request.state, "user_id", None)
     if not user_id:
         raise HTTPException(401, "Login required")
-        
+
     async with get_conn() as conn:
         snippet = await get_snippet_by_code_id(conn, code_id)
         if not snippet or snippet["type"] != "user":
             raise HTTPException(404, "Snippet not found")
-            
-        if not snippet["is_password_protected"]:
-            return {"ok": True}
-            
-        access = await get_or_create_access(conn, snippet["id"], user_id)
-        
-        if access.get("locked_until") and access["locked_until"] > datetime.now():
-            raise HTTPException(403, "Access locked. Try again later.")
-            
-        if not verify_password(data.password, snippet["password_hash"]):
-            await increment_failed_attempt(conn, snippet["id"], user_id)
-            raise HTTPException(401, "Invalid password")
-            
-        await mark_success(conn, snippet["id"], user_id)
-        return {"ok": True, "message": "Access granted"}
 
+        if snippet["expires_at"] < datetime.utcnow():
+            raise HTTPException(410, "Snippet has expired")
+
+        if not snippet["is_password_protected"]:
+            clean_snippet = {k: v for k, v in dict(snippet).items() if k != "password_hash"}
+            return {"ok": True, "snippet": clean_snippet}
+
+        uid = uuid.UUID(user_id)
+        access = await get_or_create_access(conn, snippet["id"], uid)
+
+        if access.get("locked_until") and access["locked_until"] > datetime.utcnow():
+            raise HTTPException(403, "Access locked. Try again later.")
+
+        if not verify_password(data.password, snippet["password_hash"]):
+            await increment_failed_attempt(conn, snippet["id"], uid)
+            raise HTTPException(401, "Invalid password")
+
+        await mark_success(conn, snippet["id"], uid)
+
+        clean_snippet = {k: v for k, v in dict(snippet).items() if k != "password_hash"}
+        return {"ok": True, "message": "Access granted", "snippet": clean_snippet}

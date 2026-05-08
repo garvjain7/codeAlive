@@ -237,17 +237,20 @@ async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTask
     if not email or not _EMAIL_RE.match(email):
         raise HTTPException(400, "Invalid email address")
 
-    # 1. Check if already exists in MongoDB
-    existing = waitlist_collection.find_one({"email": email})
+    loop = asyncio.get_running_loop()
+
+    # 1. Check if already exists in MongoDB (Offload to thread pool to prevent blocking)
+    existing = await loop.run_in_executor(None, lambda: waitlist_collection.find_one({"email": email}))
     if existing:
         raise HTTPException(400, "Email is already added")
 
-    # 2. Insert into MongoDB
+    # 2. Insert into MongoDB (Offload to thread pool to prevent blocking)
     import datetime
-    waitlist_collection.insert_one({
+    payload = {
         "email":      email,
         "joined_at":  datetime.datetime.utcnow().isoformat(),
-    })
+    }
+    await loop.run_in_executor(None, lambda: waitlist_collection.insert_one(payload))
 
     # 3. Send confirmation email
     if background_tasks is not None:
@@ -357,55 +360,43 @@ async def view_snippet(request: Request, code_id: str):
     """
     Serve a shared snippet with access control and password protection.
     """
+    user_id = getattr(request.state, "user_id", None)
+    user_email = None
+
     async with db_conn.pool.acquire() as conn:
+        if user_id:
+            user = await get_user_by_id(conn, uuid.UUID(user_id))
+            if user:
+                user_email = user["email"]
+
         snippet = await get_snippet_by_code_id(conn, code_id)
         if not snippet:
             raise HTTPException(404, "Snippet not found")
         
         # Check if it's a user snippet (REQUIRES LOGIN)
         if snippet["type"] == "user":
-            user_id = getattr(request.state, "user_id", None)
-            
             # If not logged in, redirect to login page for ANY user snippet
             if not user_id:
                 return RedirectResponse(url=f"/login?next={request.url.path}")
 
             # Check if it has expired
-            if snippet["expires_at"] < datetime.now():
+            if snippet["expires_at"] < datetime.utcnow():
                 raise HTTPException(410, "Snippet has expired")
             
-            # Check password protection
             if snippet["is_password_protected"]:
-                # Check if access already granted
-                from db.access_control import get_or_create_access
-                access = await get_or_create_access(conn, snippet["id"], uuid.UUID(user_id))
-                if access.get("first_success_at"):
-                    # Already verified, show snippet
-                    return templates.TemplateResponse(
-                        "index.html",
-                        {
-                            "request":    request,
-                            "encoded":    snippet["encoded_content"],
-                            "language":   snippet["language"],
-                            "highlights": snippet["highlights"],
-                            "user_id":    user_id,
-                            "is_protected": False
-                        },
-                    )
-
-                # Show password prompt instead of snippet content
-                return templates.TemplateResponse(
-                    "index.html",
-                    {
-                        "request":    request,
-                        "encoded":    "",
-                        "language":   "text",
-                        "highlights": "",
-                        "user_id":    user_id,
-                        "is_protected": True,
-                        "code_id":    code_id
-                    },
-                )
+                # MANDATORY: If protected, always show the password prompt on load.
+                # This applies to EVERYONE, including the owner.
+                return templates.TemplateResponse("index.html", {
+                    "request": request,
+                    "is_protected": True,
+                    "code_id": code_id,
+                    "encoded": "",  # NO CONTENT
+                    "language": snippet["language"],
+                    "highlights": snippet["highlights"],
+                    "title": snippet["title"] or "Protected Snippet",
+                    "user_id": user_id,
+                    "user_email": user_email
+                })
             
         return templates.TemplateResponse(
             "index.html",
@@ -414,7 +405,8 @@ async def view_snippet(request: Request, code_id: str):
                 "encoded":    snippet["encoded_content"],
                 "language":   snippet["language"],
                 "highlights": snippet["highlights"],
-                "user_id":    getattr(request.state, "user_id", None),
+                "user_id":    user_id,
+                "user_email": user_email,
                 "is_protected": False
             },
         )

@@ -13,6 +13,7 @@
     <meta property="og:url" content="https://codealive.onrender.com/waitlist" />
     <title>Join the Waitlist — CodeAlive Collaboration</title>
 
+    <link rel="stylesheet" href="/static/css/theme.css" />
     <link rel="stylesheet" href="/static/css/home.css" />
     <link rel="stylesheet" href="/static/css/waitlist.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -46,6 +47,7 @@
       <div class="nav-right">
         <a href="/editor" class="btn-ghost-sm">Open Editor</a>
         <a href="/" class="btn-green-sm">← Back to Home</a>
+        <button id="themeToggle" class="btn-ghost-sm" style="padding: 0 8px; font-size: 16px; cursor: pointer;">🌓</button>
         
         <button id="mobile-menu-toggle" aria-label="Toggle Menu">
           <span class="bar"></span>
@@ -143,6 +145,7 @@
     </footer>
 
     <script src="/static/mobile-nav.js"></script>
+    <script type="module" src="/static/theme.js"></script>
     <script src="/static/home.js"></script>
     <script src="/static/waitlist.js"></script>
   </body>

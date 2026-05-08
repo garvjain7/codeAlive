@@ -17,3 +17,5 @@ export const avatarInitial   = document.getElementById('avatarInitial');
 export const userEmailDisplay = document.getElementById('userEmailDisplay');
 
 export const toastWorkspace  = document.getElementById('toast');
+export const mobileSidebarToggle = document.getElementById('mobile-sidebar-toggle');
+export const sidebar = document.querySelector('.sidebar');

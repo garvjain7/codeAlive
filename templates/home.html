@@ -45,6 +45,7 @@
 
       <div class="nav-right">
         {% if user_id %}
+          <a href="/editor" class="btn-ghost-sm">Editor</a>
           <a href="/workspace" class="btn-green-sm">Workspace</a>
           <a href="/auth/logout" class="btn-ghost-sm">Logout</a>
           <a href="/profile" class="nav-avatar" id="homeAvatar">
@@ -116,9 +117,14 @@
 
           <div class="hero-actions">
             {% if user_id %}
-              <a href="/workspace" class="btn-primary btn-large">
-                Go to Workspace →
-              </a>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="/editor" class="btn-primary btn-large">
+                  Open Editor →
+                </a>
+                <a href="/workspace" class="btn-outline-collab" style="border-color: var(--accent-green); color: var(--accent-green);">
+                  View Workspace
+                </a>
+              </div>
             {% else %}
               <a href="/editor" class="btn-primary btn-large">
                 Start Coding Now — free

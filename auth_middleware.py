@@ -6,8 +6,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         user_id = None
         session_id = request.cookies.get("session_id")
+        # OPTIMIZATION: Skip session lookup for static assets to reduce TTFB on asset loads.
+        is_static = request.url.path.startswith("/static/")
         
-        if session_id:
+        if session_id and not is_static:
             user_id = await async_redis.get(f"session:{session_id}")
                 
         request.state.user_id = user_id

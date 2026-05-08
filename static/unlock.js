@@ -40,17 +40,9 @@ export function initUnlock() {
         return;
       }
 
-      // 2. Success! Fetch snippet data
-      const snippetRes = await fetch(`/api/snippets/${codeId}`);
-      const snippetData = await snippetRes.json().catch(() => ({}));
-
-      if (!snippetRes.ok) {
-        showError(snippetData.detail || "Failed to fetch snippet data after unlock.");
-        return;
-      }
-
-      // 3. Load snippet and hide overlay
-      const { encoded_content, language, highlights } = snippetData.snippet;
+      // 2. Success! Load snippet and hide overlay
+      // The snippet content is now returned directly in the verify response
+      const { encoded_content, language, highlights } = data.snippet;
       await loadEncodedSnippet(encoded_content, language, highlights);
       
       overlay.style.opacity = "0";

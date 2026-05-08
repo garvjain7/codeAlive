@@ -53,18 +53,13 @@
         <span id="lineInfo">0 lines</span>
         <div class="dot"></div>
         <span id="charInfo">0 chars</span>
-        <!-- Language detection indicator — shown/hidden by JS -->
         <div class="dot" id="langDot" style="display: none"></div>
         <span id="langBadge" class="lang-badge" style="display: none"></span>
       </div>
 
       <div class="bar-right">
         <div id="view-badge"><span class="vdot"></span>viewing</div>
-        <button class="btn btn-ghost" id="searchBtn">🔍 search</button>
-        <button class="btn btn-ghost" id="howItWorksBtn">🟩 Highlighting Guide</button>
-        <button class="btn btn-ghost" id="imageUploadBtn">📷 upload image</button>
-        <button class="btn btn-ghost" id="copyCodeBtn">copy</button>
-        <button class="btn btn-ghost" id="newBtn">new</button>
+        
         {% if user_id %}
           <a href="/workspace" class="btn btn-ghost" style="text-decoration: none;">workspace</a>
           <a href="/profile" class="nav-avatar-sm" id="editorAvatar">
@@ -74,11 +69,42 @@
           <a href="/login" class="btn btn-ghost" style="text-decoration: none;">login</a>
           <a href="/signup" class="btn btn-ghost" style="text-decoration: none;">signup</a>
         {% endif %}
+        
         <button class="btn btn-ghost" id="themeToggleBtn" style="padding: 0 8px; font-size: 16px;">🌓</button>
         <button class="btn btn-accent" id="shareBtn">share →</button>
-        <button class="btn btn-ghost" id="downloadBtn">download ↓</button>
       </div>
     </header>
+
+    <!-- LEFT SIDEBAR -->
+    <aside id="editor-sidebar">
+      <div class="sidebar-top">
+        <button class="side-btn" id="newBtn" title="New Snippet">
+          <span class="icon">+</span>
+          <span class="label">New Snippet</span>
+        </button>
+        <div class="side-divider"></div>
+        <button class="side-btn" id="searchBtn" title="Search (Ctrl+F)">
+          <span class="icon">🔍</span>
+          <span class="label">Search</span>
+        </button>
+        <button class="side-btn" id="copyCodeBtn" title="Copy All">
+          <span class="icon">⧉</span>
+          <span class="label">Copy Code</span>
+        </button>
+        <button class="side-btn" id="downloadBtn" title="Download">
+          <span class="icon">↓</span>
+          <span class="label">Download</span>
+        </button>
+        <button class="side-btn" id="imageUploadBtn" title="Upload Image">
+          <span class="icon">📷</span>
+          <span class="label">Upload Image</span>
+        </button>
+        <button class="side-btn" id="howItWorksBtn" title="Highlighting Guide">
+          <span class="icon">❓</span>
+          <span class="label">Guide</span>
+        </button>
+      </div>
+    </aside>
 
     <!-- EDITOR -->
     <div id="editor-wrap">

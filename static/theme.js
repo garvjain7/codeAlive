@@ -4,15 +4,15 @@
  */
 
 export function initTheme() {
-    const saved = localStorage.getItem("theme") || "dark";
-    document.documentElement.setAttribute("data-theme", saved);
+    // Always default to dark on load, as per user requirement (no persistence)
+    document.documentElement.setAttribute("data-theme", "dark");
 }
 
 export function toggleTheme(toastCallback) {
     const current = document.documentElement.getAttribute("data-theme") || "dark";
     const next = current === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem("theme", next);
+    // Removed localStorage.setItem to avoid persistence
     if (toastCallback) {
         toastCallback(`Theme switched to ${next} mode`);
     }

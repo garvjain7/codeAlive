@@ -291,9 +291,27 @@ body {
 @media (max-width: 1024px) {
   .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
 @media (max-width: 768px) {
-  .sidebar { position: fixed; left: -100%; transition: left 0.3s; z-index: 200; }
-  .sidebar.open { left: 0; }
-  .search-wrap { width: 100%; margin: 0 16px; }
+  .workspace-layout { flex-direction: column; height: auto; overflow: visible; }
+  .sidebar { 
+    position: fixed; left: -100%; top: var(--nav-h); bottom: 0;
+    width: 280px; border-right: 0.5px solid var(--border); 
+    background: var(--bg2); z-index: 200; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .sidebar.open { left: 0; box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
+  
+  #mobile-sidebar-toggle { display: block !important; }
+  
+  .btn-new-snippet { margin-bottom: 16px; }
+  .main-panel { padding: 20px 16px; }
+  .search-wrap { display: none; } /* Hide in nav, will add to sidebar or main */
   .stats-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 500px) {
+  #top-nav { padding: 0 12px; }
+  .search-wrap { display: none; } /* Hide search on very small screens or move it */
+  .section-header h1 { font-size: 22px; }
+  .stat-value { font-size: 24px; }
 }

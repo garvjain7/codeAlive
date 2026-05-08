@@ -31,9 +31,11 @@
         <div class="nav-left">
             <a href="/" class="logo">Code<span>Alive</span></a>
         </div>
-        <div class="nav-right" style="display: flex; gap: 12px;">
+        <div class="nav-right" style="display: flex; gap: 12px; align-items: center;">
             <a href="/workspace" class="btn-secondary" style="padding: 8px 16px;">Workspace</a>
-            <a href="/editor" class="btn-secondary" style="padding: 8px 16px; border-color: var(--accent); color: var(--accent);">+ New</a>
+            <a href="/editor" class="btn-secondary" style="padding: 8px 16px; border-color: var(--accent); color: var(--accent);">Editor</a>
+            <button id="themeToggle" class="btn-secondary" style="padding: 8px 16px; font-size: 16px; cursor: pointer;">🌓</button>
+            <button id="mobile-menu-toggle" class="btn-secondary" style="display: none; padding: 8px 12px; font-size: 20px;">☰</button>
         </div>
     </nav>
 
@@ -104,6 +106,7 @@
     <!-- TOAST -->
     <div id="toast">Update successful</div>
 
+    <script type="module" src="/static/theme.js"></script>
     <script type="module" src="/static/profile.js"></script>
 </body>
 </html>

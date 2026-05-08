@@ -209,7 +209,15 @@ function setupEventListeners() {
   });
 
   dom.navItems.forEach(item => {
-    item.addEventListener('click', () => renderView(item.dataset.view));
+    item.addEventListener('click', () => {
+      renderView(item.dataset.view);
+      dom.sidebar.classList.remove('open'); // Close on mobile after selection
+    });
+  });
+
+  dom.mobileSidebarToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dom.sidebar.classList.toggle('open');
   });
 
   dom.snippetList.addEventListener('click', async (e) => {
