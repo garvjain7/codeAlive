@@ -36,11 +36,11 @@
 |---|---|
 | Frontend | HTML5, Vanilla CSS, JavaScript (ES Modules / ESM) |
 | Code Editor | **CodeMirror 6** (Loaded via `esm.sh`, no build step required) |
-| Backend | Python 3.10+, FastAPI, Uvicorn |
-| Database | **PostgreSQL (Neon)** (Snippet storage, Auth, Access Control) |
-| In-Memory Store | **Redis** (Session management) |
-| File Storage | MongoDB Atlas (Images & Waitlist) |
-| Email System | Gmail SMTP (smtplib) |
+| Backend | Python 3.10+, FastAPI, Uvicorn (ASGI) |
+| Database | **PostgreSQL (Neon)** (Connection pooled via `asyncpg`) |
+| In-Memory Store | **Redis** (Session management with rolling TTL) |
+| NoSQL Storage | MongoDB Atlas (Waitlist & Image metadata) |
+| Email System | Gmail SMTP (Async via FastAPI BackgroundTasks) |
 | Fonts | JetBrains Mono, Syne (Google Fonts) |
 | Hosting | Render |
 
@@ -53,11 +53,12 @@ codealive/
 ├── app.py                  # FastAPI entry point
 ├── api_snippets.py         # Snippet CRUD & Verification API
 ├── auth_router.py          # Authentication (Login/Signup) logic
-├── db/                     # PostgreSQL Data Access Layer
+├── db/                     # PostgreSQL Data Access Layer (asyncpg)
+├── docs/                   # SQL Schemas, migration logs, and architecture docs
 ├── static/                 # Frontend assets (ESM JS, CSS)
 ├── templates/              # Jinja2 HTML templates
 ├── redis_client.py         # Redis connection for sessions
-├── mongodb.py              # MongoDB connection for images
+├── mongodb.py              # MongoDB connection for waitlist
 └── requirements.txt        # Project dependencies
 ```
 
@@ -88,9 +89,9 @@ pip install -r requirements.txt
 
 ### Environment Variables
 The application requires a `.env` file with the following:
+- `DB_URL`: Unified PostgreSQL connection string (Postgres 14+).
 - `REDIS_URL`: Redis connection string (for sessions).
-- `PG_HOST`, `PG_USER`, `PG_PASSWORD`, `PG_DB`: PostgreSQL credentials.
-- `MONGO_URI`: MongoDB connection string (for images).
+- `MONGO_URI`: MongoDB connection string (for waitlist).
 - `MAIL_EMAIL`: Your Gmail address.
 - `MAIL_PASSWORD`: Your Gmail App Password.
 
