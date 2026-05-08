@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -216,7 +216,7 @@ async def serve_sitemap_xml():
 
 
 @app.post("/waitlist")
-async def waitlist_join(email: str = Form(...)):
+async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTasks = None):
     """
     Accept an email address for the collaboration rooms waitlist.
 
@@ -250,10 +250,16 @@ async def waitlist_join(email: str = Form(...)):
     })
 
     # 3. Send confirmation email
-    send_waitlist_email(email)
+    if background_tasks is not None:
+        background_tasks.add_task(send_waitlist_email, email)
+    else:
+        send_waitlist_email(email)
 
     from utils import safe_log
-    safe_log("User joined waitlist", {"email": email})
+    if background_tasks is not None:
+        background_tasks.add_task(safe_log, "User joined waitlist", {"email": email})
+    else:
+        safe_log("User joined waitlist", {"email": email})
 
     return JSONResponse({"ok": True, "message": "Email sent successfully"})
 

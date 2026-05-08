@@ -5,7 +5,7 @@ venv/
 db/__pycache__
 
 clear_session.py
-schema.sql
-queries.sql
-migrate.txt
-ideal_folder_structure.txt
+docs/schema.sql
+docs/queries.sql
+docs/migrate.txt
+docs/ideal_folder_structure.txt

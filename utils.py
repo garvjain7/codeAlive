@@ -5,11 +5,16 @@ import string
 from fastapi import HTTPException
 
 MAX_LINES = 1000
+MAX_SIZE_BYTES = 1024 * 1024  # 1MB
 ID_LENGTH = 6
 ID_ALPHABET = string.ascii_letters + string.digits
 
 
 def validate_code(code: str):
+    # Enforce 1MB limit to protect CPU-bound gzip compression
+    if len(code.encode('utf-8')) > MAX_SIZE_BYTES:
+        raise HTTPException(status_code=400, detail="Code exceeds 1MB limit")
+        
     lines = code.splitlines()
     if len(lines) > MAX_LINES:
         raise HTTPException(status_code=400, detail="Code exceeds 1000 lines")

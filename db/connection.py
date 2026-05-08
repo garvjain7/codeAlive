@@ -9,13 +9,10 @@ pool = None
 
 async def connect_db():
     global pool
-    pool = await asyncpg.create_pool(
-        user=os.getenv("PG_USER", "postgres"),
-        password=os.getenv("PG_PASSWORD"),
-        database=os.getenv("PG_DB"),
-        host=os.getenv("PG_HOST", "localhost"),
-        port=int(os.getenv("PG_PORT", 5432))
-    )
+    db_url = os.getenv("DB_URL")
+    if not db_url:
+        raise ValueError("DB_URL is missing in environment variables.")
+    pool = await asyncpg.create_pool(db_url)
 
 @asynccontextmanager
 async def get_conn():

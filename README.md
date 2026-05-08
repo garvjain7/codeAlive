@@ -37,7 +37,7 @@
 | Frontend | HTML5, Vanilla CSS, JavaScript (ES Modules / ESM) |
 | Code Editor | **CodeMirror 6** (Loaded via `esm.sh`, no build step required) |
 | Backend | Python 3.10+, FastAPI, Uvicorn |
-| Database | **PostgreSQL** (Snippet storage, Auth, Access Control) |
+| Database | **PostgreSQL (Neon)** (Snippet storage, Auth, Access Control) |
 | In-Memory Store | **Redis** (Session management) |
 | File Storage | MongoDB Atlas (Images & Waitlist) |
 | Email System | Gmail SMTP (smtplib) |

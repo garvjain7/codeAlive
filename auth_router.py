@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Response, Request
+from fastapi import APIRouter, HTTPException, Depends, Response, Request, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 import bcrypt
@@ -41,19 +41,19 @@ def verify_password(password: str, hashed: str) -> bool:
 
 async def create_session(response: Response, user_id: str):
     session_id = uuid.uuid4().hex
-    # Store session for 2 hours (7200 seconds)
-    await async_redis.setex(f"session:{session_id}", 7200, user_id)
+    # Store session for 7 days (604800 seconds)
+    await async_redis.setex(f"session:{session_id}", 604800, user_id)
     response.set_cookie(
         key="session_id",
         value=session_id,
         httponly=True,
         samesite="lax",
-        max_age=7200,
+        max_age=604800,
         secure=True
     )
 
 @router.post("/signup")
-async def signup(data: SignupRequest, response: Response):
+async def signup(data: SignupRequest, response: Response, background_tasks: BackgroundTasks):
     async with db_conn.pool.acquire() as conn:
         # Check if email is already taken
         if await get_user_by_identifier(conn, data.email):
@@ -68,30 +68,30 @@ async def signup(data: SignupRequest, response: Response):
         
         await create_session(response, str(user["user_id"]))
         from utils import safe_log
-        safe_log("User signed up successfully", {"username": data.username, "email": data.email})
+        background_tasks.add_task(safe_log, "User signed up successfully", {"username": data.username, "email": data.email})
         return {"ok": True, "user_id": str(user["user_id"])}
 
 @router.post("/login")
-async def login(data: LoginRequest, response: Response):
+async def login(data: LoginRequest, response: Response, background_tasks: BackgroundTasks):
     async with db_conn.pool.acquire() as conn:
         user = await get_user_by_identifier(conn, data.identifier)
         if not user:
             from utils import safe_log
-            safe_log("Failed login attempt - User not found", {"identifier": data.identifier})
+            background_tasks.add_task(safe_log, "Failed login attempt - User not found", {"identifier": data.identifier})
             raise HTTPException(401, "Invalid credentials")
             
         if not verify_password(data.password, user["password_hash"]):
             from utils import safe_log
-            safe_log("Failed login attempt - Wrong password", {"identifier": data.identifier})
+            background_tasks.add_task(safe_log, "Failed login attempt - Wrong password", {"identifier": data.identifier})
             raise HTTPException(401, "Invalid credentials")
             
         await create_session(response, str(user["user_id"]))
         from utils import safe_log
-        safe_log("User logged in successfully", {"user_id": str(user["user_id"]), "identifier": data.identifier})
+        background_tasks.add_task(safe_log, "User logged in successfully", {"user_id": str(user["user_id"]), "identifier": data.identifier})
         return {"ok": True, "user_id": str(user["user_id"])}
 
 @router.post("/forgot-password")
-async def forgot_password(data: ForgotPasswordRequest):
+async def forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks):
     """Request a password reset link."""
     async with db_conn.pool.acquire() as conn:
         # Look up user by email
@@ -110,8 +110,8 @@ async def forgot_password(data: ForgotPasswordRequest):
                 VALUES ($1, $2, $3)
             """, user["user_id"], token_hash, expires_at)
             
-            # Send email
-            send_password_reset_email(user["email"], token)
+            # Send email in background
+            background_tasks.add_task(send_password_reset_email, user["email"], token)
             
     # Always return success message for security
     return {"message": "If the email is correct, a reset link has been sent"}

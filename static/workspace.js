@@ -250,10 +250,13 @@ async function handleMenuAction(action, codeId) {
     if (!confirm('Are you sure you want to delete this snippet? This cannot be undone.')) return;
     try {
       const res = await fetch(`/api/workspace/snippets/${codeId}`, { method: 'DELETE' });
-      if (res.ok) {
-        showToast('Snippet deleted');
-        fetchData(); // Refresh list
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Failed to delete snippet');
+        return;
       }
+      showToast('Snippet deleted');
+      fetchData(); // Refresh list
     } catch (err) {
       showToast('Failed to delete snippet');
     }
@@ -268,10 +271,13 @@ async function handleMenuAction(action, codeId) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: pwd })
       });
-      if (res.ok) {
-        showToast('Password updated');
-        fetchData();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showToast(err.detail || 'Failed to update password');
+        return;
       }
+      showToast('Password updated');
+      fetchData();
     } catch (err) {
       showToast('Failed to update password');
     }
@@ -282,7 +288,7 @@ async function handleMenuAction(action, codeId) {
     if (!days) return;
     const daysInt = parseInt(days);
     if (isNaN(daysInt) || daysInt < 1) {
-      alert('Please enter a valid number of days.');
+      showToast('Please enter a valid number of days.');
       return;
     }
     try {

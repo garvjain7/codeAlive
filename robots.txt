@@ -1,4 +1,6 @@
 User-agent: *
+Disallow: /workspace
+Disallow: /profile
 Allow: /
 
 Sitemap: https://codealive.onrender.com/sitemap.xml

@@ -111,8 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const data = await response.json();
                 if (response.ok) {
-                    alert('Password reset successful! You can now log in.');
-                    window.location.href = '/login';
+                    showToast('Password reset successful! Redirecting...', 2000);
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 2000);
                 } else {
                     showError(data.detail || 'Reset failed');
                 }
@@ -167,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 // We always show success for security
-                alert('If the email is correct, a reset link has been sent.');
+                showToast('If the email is correct, a reset link has been sent.', 3000);
                 modalOverlay.classList.remove('active');
                 forgotPasswordForm.reset();
             } catch (err) {

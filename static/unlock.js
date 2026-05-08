@@ -42,10 +42,10 @@ export function initUnlock() {
 
       // 2. Success! Fetch snippet data
       const snippetRes = await fetch(`/api/snippets/${codeId}`);
-      const snippetData = await snippetRes.json();
+      const snippetData = await snippetRes.json().catch(() => ({}));
 
       if (!snippetRes.ok) {
-        showError("Failed to fetch snippet data after unlock.");
+        showError(snippetData.detail || "Failed to fetch snippet data after unlock.");
         return;
       }
 

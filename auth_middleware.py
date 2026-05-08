@@ -12,4 +12,19 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 
         request.state.user_id = user_id
         response = await call_next(request)
+        
+        # Rolling Session: Refresh TTL for 7 days if the user is active.
+        # Exclude /auth/logout so we don't accidentally recreate the cookie during logout.
+        # Exclude /static/ to avoid sending Set-Cookie headers on every CSS/JS file load.
+        if user_id and request.url.path != "/auth/logout" and not request.url.path.startswith("/static/"):
+            await async_redis.expire(f"session:{session_id}", 604800)
+            response.set_cookie(
+                key="session_id",
+                value=session_id,
+                httponly=True,
+                samesite="lax",
+                max_age=604800,
+                secure=True
+            )
+            
         return response
