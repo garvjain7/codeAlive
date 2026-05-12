@@ -10,3 +10,4 @@ docs/queries.sql
 docs/migrate.txt
 docs/ideal_folder_structure.txt
 test_e2e.py
+mailer.py

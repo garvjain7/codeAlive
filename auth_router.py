@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 import db.connection as db_conn
 from db.users import get_user_by_identifier, get_user_by_id, create_user
 from redis_client import async_redis
-from mailer import send_password_reset_email
+# from mailer import send_password_reset_email
+from mail_service_v2 import send_reset_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -90,30 +91,51 @@ async def login(data: LoginRequest, response: Response, background_tasks: Backgr
         background_tasks.add_task(safe_log, "User logged in successfully", {"user_id": str(user["user_id"]), "identifier": data.identifier})
         return {"ok": True, "user_id": str(user["user_id"])}
 
+
+# @router.post("/forgot-password")
+# async def forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks):
+#     """Request a password reset link."""
+#     async with db_conn.pool.acquire() as conn:
+#         # Look up user by email
+#         user = await get_user_by_identifier(conn, data.email)
+        
+#         if user:
+#             # Generate secure token
+#             token = secrets.token_urlsafe(32)
+#             # Link expires in 20 minutes
+#             expires_at = datetime.utcnow() + timedelta(minutes=20)
+            
+#             # Store in database (hash the token for security)
+#             token_hash = hashlib.sha256(token.encode()).hexdigest()
+#             await conn.execute("""
+#                 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
+#                 VALUES ($1, $2, $3)
+#             """, user["user_id"], token_hash, expires_at)
+            
+#             # Send email in background
+#             background_tasks.add_task(send_password_reset_email, user["email"], token)
+            
+#     # Always return success message for security
+#     return {"message": "If the email is correct, a reset link has been sent"}
+
 @router.post("/forgot-password")
 async def forgot_password(data: ForgotPasswordRequest, background_tasks: BackgroundTasks):
-    """Request a password reset link."""
+    # V2 — send_reset_email replaces send_password_reset_email from mailer.py
     async with db_conn.pool.acquire() as conn:
-        # Look up user by email
         user = await get_user_by_identifier(conn, data.email)
-        
+
         if user:
-            # Generate secure token
             token = secrets.token_urlsafe(32)
-            # Link expires in 20 minutes
             expires_at = datetime.utcnow() + timedelta(minutes=20)
-            
-            # Store in database (hash the token for security)
+
             token_hash = hashlib.sha256(token.encode()).hexdigest()
             await conn.execute("""
                 INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
                 VALUES ($1, $2, $3)
             """, user["user_id"], token_hash, expires_at)
-            
-            # Send email in background
-            background_tasks.add_task(send_password_reset_email, user["email"], token)
-            
-    # Always return success message for security
+
+            background_tasks.add_task(send_reset_email, user["email"], token)
+
     return {"message": "If the email is correct, a reset link has been sent"}
 
 @router.post("/reset-password")

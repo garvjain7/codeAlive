@@ -23,7 +23,8 @@ import uuid
 from auth_router import router as auth_router
 from workspace_router import router as workspace_router
 from profile_router import router as profile_router
-from mailer import send_waitlist_email
+# from mailer import send_waitlist_email
+from mail_service_v2 import send_waitlist_email
 from mongodb import waitlist_collection
 from dotenv import load_dotenv
 import db.connection as db_conn
@@ -215,23 +216,63 @@ async def serve_sitemap_xml():
     return FileResponse(os.path.join(BASE_DIR, "sitemap.xml"))
 
 
+# @app.post("/waitlist")
+# async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTasks = None):
+#     """
+#     Accept an email address for the collaboration rooms waitlist.
+
+#     Validation
+#     ----------
+#     - Basic format check (must contain @, domain, TLD)
+#     - Duplicate guard — silently succeeds if already on list
+#       (avoids leaking whether an email is registered)
+
+#     Storage
+#     -------
+#     Temporarily written to waitlist.json on disk.
+#     Replace _load_waitlist() / _save_waitlist() with a PostgreSQL
+#     INSERT when the DB is wired in — the route itself stays identical.
+#     """
+#     email = email.strip().lower()
+
+#     if not email or not _EMAIL_RE.match(email):
+#         raise HTTPException(400, "Invalid email address")
+
+#     loop = asyncio.get_running_loop()
+
+#     # 1. Check if already exists in MongoDB (Offload to thread pool to prevent blocking)
+#     existing = await loop.run_in_executor(None, lambda: waitlist_collection.find_one({"email": email}))
+#     if existing:
+#         raise HTTPException(400, "Email is already added")
+
+#     # 2. Insert into MongoDB (Offload to thread pool to prevent blocking)
+#     import datetime
+#     payload = {
+#         "email":      email,
+#         "joined_at":  datetime.datetime.utcnow().isoformat(),
+#     }
+#     await loop.run_in_executor(None, lambda: waitlist_collection.insert_one(payload))
+
+#     # 3. Send confirmation email
+#     if background_tasks is not None:
+#         background_tasks.add_task(send_waitlist_email, email)
+#     else:
+#         send_waitlist_email(email)
+
+#     from utils import safe_log
+#     if background_tasks is not None:
+#         background_tasks.add_task(safe_log, "User joined waitlist", {"email": email})
+#     else:
+#         safe_log("User joined waitlist", {"email": email})
+
+#     return JSONResponse({"ok": True, "message": "Email sent successfully"})
+
+# import at top of main.py
+# from mail_service_v2 import send_waitlist_email, send_reset_email
+
 @app.post("/waitlist")
 async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTasks = None):
-    """
-    Accept an email address for the collaboration rooms waitlist.
-
-    Validation
-    ----------
-    - Basic format check (must contain @, domain, TLD)
-    - Duplicate guard — silently succeeds if already on list
-      (avoids leaking whether an email is registered)
-
-    Storage
-    -------
-    Temporarily written to waitlist.json on disk.
-    Replace _load_waitlist() / _save_waitlist() with a PostgreSQL
-    INSERT when the DB is wired in — the route itself stays identical.
-    """
+    # V2 — mail now goes via mail microservice on Fly.io
     email = email.strip().lower()
 
     if not email or not _EMAIL_RE.match(email):
@@ -239,20 +280,17 @@ async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTask
 
     loop = asyncio.get_running_loop()
 
-    # 1. Check if already exists in MongoDB (Offload to thread pool to prevent blocking)
     existing = await loop.run_in_executor(None, lambda: waitlist_collection.find_one({"email": email}))
     if existing:
         raise HTTPException(400, "Email is already added")
 
-    # 2. Insert into MongoDB (Offload to thread pool to prevent blocking)
     import datetime
     payload = {
-        "email":      email,
-        "joined_at":  datetime.datetime.utcnow().isoformat(),
+        "email":     email,
+        "joined_at": datetime.datetime.utcnow().isoformat(),
     }
     await loop.run_in_executor(None, lambda: waitlist_collection.insert_one(payload))
 
-    # 3. Send confirmation email
     if background_tasks is not None:
         background_tasks.add_task(send_waitlist_email, email)
     else:
@@ -265,7 +303,6 @@ async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTask
         safe_log("User joined waitlist", {"email": email})
 
     return JSONResponse({"ok": True, "message": "Email sent successfully"})
-
 
 @app.post("/detect-language")
 async def detect_language_endpoint(body: DetectRequest):
