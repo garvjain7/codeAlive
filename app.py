@@ -10,22 +10,22 @@ import re
 import os
 import uvicorn
 
-from utils import validate_code, compress_code, generate_id
-from language_detector import detect_language
-from image_router import router as image_router
-from api_snippets import router as api_snippets_router, resolve_code_id
-from auth_middleware import AuthMiddleware
+from core.utils import validate_code, compress_code, generate_id
+from services.language_detector import detect_language
+from api.image_router import router as image_router
+from api.api_snippets import router as api_snippets_router, resolve_code_id
+from core.auth_middleware import AuthMiddleware
 from db.snippets import create_anonymous, get_snippet_by_code_id, create_user_snippet
 from db.users import get_user_by_id
 from datetime import datetime, timedelta
 import uuid
 
-from auth_router import router as auth_router
-from workspace_router import router as workspace_router
-from profile_router import router as profile_router
-# from mailer import send_waitlist_email
-from mail_service_v2 import send_waitlist_email
-from mongodb import waitlist_collection
+from api.auth_router import router as auth_router
+from api.workspace_router import router as workspace_router
+from api.profile_router import router as profile_router
+# from services.mailer import send_waitlist_email
+from services.mail_service_v2 import send_waitlist_email
+from core.mongodb import waitlist_collection
 from dotenv import load_dotenv
 import db.connection as db_conn
 
@@ -33,11 +33,40 @@ load_dotenv()
 
 from contextlib import asynccontextmanager
 
+async def neon_keepalive_loop():
+    """Background task to keep Neon DB alive by querying every 4 minutes."""
+    import os
+    from datetime import datetime
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "neon_keepalive.log")
+    while True:
+        await asyncio.sleep(240)
+        try:
+            if db_conn.pool:
+                async with db_conn.pool.acquire() as conn:
+                    await conn.execute("SELECT 1")
+                with open(log_file, "a") as f:
+                    f.write(f"[{datetime.utcnow().isoformat()}] Neon DB keepalive ping sent successfully.\n")
+        except Exception as e:
+            with open(log_file, "a") as f:
+                f.write(f"[{datetime.utcnow().isoformat()}] Neon DB keepalive ping FAILED: {e}\n")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: Connect to PostgreSQL
     await db_conn.connect_db()
+    
+    # Start Neon DB keepalive loop
+    keepalive_task = asyncio.create_task(neon_keepalive_loop())
+    
     yield
+    
+    # Shutdown: Cancel keepalive task
+    keepalive_task.cancel()
+    try:
+        await keepalive_task
+    except asyncio.CancelledError:
+        pass
+        
     # Shutdown: Close pool
     await db_conn.close_db()
 
@@ -259,7 +288,7 @@ async def serve_sitemap_xml():
 #     else:
 #         send_waitlist_email(email)
 
-#     from utils import safe_log
+#     from core.utils import safe_log
 #     if background_tasks is not None:
 #         background_tasks.add_task(safe_log, "User joined waitlist", {"email": email})
 #     else:
@@ -268,7 +297,7 @@ async def serve_sitemap_xml():
 #     return JSONResponse({"ok": True, "message": "Email sent successfully"})
 
 # import at top of main.py
-# from mail_service_v2 import send_waitlist_email, send_reset_email
+# from services.mail_service_v2 import send_waitlist_email, send_reset_email
 
 @app.post("/waitlist")
 async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTasks = None):
@@ -296,7 +325,7 @@ async def waitlist_join(email: str = Form(...), background_tasks: BackgroundTask
     else:
         send_waitlist_email(email)
 
-    from utils import safe_log
+    from core.utils import safe_log
     if background_tasks is not None:
         background_tasks.add_task(safe_log, "User joined waitlist", {"email": email})
     else:
@@ -464,6 +493,49 @@ async def legacy_snippet(code_id: str):
 
         return RedirectResponse(url=f"/s/{code_id}", status_code=301)
 
+
+@app.get("/neon-logs", response_class=HTMLResponse)
+async def get_neon_logs():
+    return """
+    <html>
+        <body>
+            <h2>Enter Password to View Logs</h2>
+            <form method="post">
+                <input type="password" name="password" required />
+                <button type="submit">View Logs</button>
+            </form>
+        </body>
+    </html>
+    """
+
+@app.post("/neon-logs", response_class=HTMLResponse)
+async def post_neon_logs(password: str = Form(...)):
+    import os
+    if password != os.getenv("ADMIN_LOGS_PASSWORD"):
+        return "<h2 style='color:red'>Invalid Password</h2><a href='/neon-logs'>Try again</a>"
+    
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "neon_keepalive.log")
+    if not os.path.exists(log_file):
+        return "<h2>No logs found.</h2><a href='/neon-logs'>Back</a>"
+        
+    with open(log_file, "r") as f:
+        lines = f.readlines()
+        
+    top_50 = lines[-50:]
+    logs_html = "<br>".join(top_50)
+    
+    return f"""
+    <html>
+        <body>
+            <h2>Top 50 Logs</h2>
+            <div style="background:#1e1e1e; color:#0f0; padding:10px; font-family:monospace; max-height:80vh; overflow-y:auto;">
+                {logs_html}
+            </div>
+            <br>
+            <a href='/neon-logs'>Back</a>
+        </body>
+    </html>
+    """
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))

@@ -3,6 +3,8 @@
 -- codealive-db
 -- Run after existing schema.sql
 -- ================================
+-- Migration v2 notes at bottom.
+-- ================================
 
 -- ================================
 -- ROOMS
@@ -14,11 +16,15 @@ CREATE TABLE rooms (
     title            TEXT NOT NULL,
     current_revision INT NOT NULL DEFAULT 0,
     is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    is_locked        BOOLEAN NOT NULL DEFAULT FALSE,
+    password_hash    TEXT,                          -- NULL = no password
+    password_version INT NOT NULL DEFAULT 0,        -- incremented on every password change
+    cohost_id        UUID REFERENCES users(user_id) ON DELETE SET NULL,
     last_active_at   TIMESTAMP NOT NULL DEFAULT NOW(),
     created_at       TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX idx_rooms_host ON rooms(host_id);
+CREATE INDEX idx_rooms_host   ON rooms(host_id);
 CREATE INDEX idx_rooms_active ON rooms(is_active);
 
 -- ================================
@@ -31,6 +37,9 @@ CREATE TABLE room_participants (
     id        UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     room_id   UUID NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
     user_id   UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
+    role      TEXT NOT NULL DEFAULT 'participant'
+              CONSTRAINT chk_participant_role CHECK (role IN ('host', 'cohost', 'participant')),
+    is_muted  BOOLEAN NOT NULL DEFAULT FALSE,
     joined_at TIMESTAMP NOT NULL DEFAULT NOW(),
     UNIQUE(room_id, user_id)
 );
@@ -46,36 +55,32 @@ CREATE TABLE room_join_requests (
     id           UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     room_id      UUID NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
     user_id      UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    status       TEXT NOT NULL DEFAULT 'pending',   -- pending | approved | rejected
+    status       TEXT NOT NULL DEFAULT 'pending',
     requested_at TIMESTAMP NOT NULL DEFAULT NOW(),
     resolved_at  TIMESTAMP,
     CONSTRAINT chk_join_status CHECK (status IN ('pending', 'approved', 'rejected'))
 );
 
-CREATE INDEX idx_join_requests_room ON room_join_requests(room_id);
-CREATE INDEX idx_join_requests_user ON room_join_requests(user_id);
+CREATE INDEX idx_join_requests_room   ON room_join_requests(room_id);
+CREATE INDEX idx_join_requests_user   ON room_join_requests(user_id);
 CREATE INDEX idx_join_requests_status ON room_join_requests(room_id, status);
 
 -- ================================
 -- OPERATION LOG
 -- ================================
--- UNIQUE(room_id, revision) is the DB-level OT correctness guard.
--- Two ops cannot claim the same revision in the same room.
--- If this constraint fires it means a bug in room_state.py's Redis lock.
---
--- UNIQUE(op_id) is the idempotency guard.
--- Client retries are safe — second insert is silently ignored.
+-- UNIQUE(room_id, revision) — DB-level OT correctness guard.
+-- UNIQUE(op_id)             — client retry idempotency guard.
 
 CREATE TABLE operation_log (
     id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     room_id    UUID NOT NULL REFERENCES rooms(room_id) ON DELETE CASCADE,
     user_id    UUID NOT NULL REFERENCES users(user_id) ON DELETE CASCADE,
-    op_id      TEXT NOT NULL,           -- client-generated UUID, idempotency key
-    revision   INT NOT NULL,            -- server revision AFTER this op applied
-    op_type    TEXT NOT NULL,           -- 'insert' | 'delete'
+    op_id      TEXT NOT NULL,
+    revision   INT NOT NULL,
+    op_type    TEXT NOT NULL,
     position   INT NOT NULL,
-    chars      TEXT,                    -- insert only, NULL for delete
-    length     INT,                     -- delete only, NULL for insert
+    chars      TEXT,
+    length     INT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT chk_op_type CHECK (op_type IN ('insert', 'delete')),
     CONSTRAINT chk_insert_has_chars CHECK (
@@ -88,15 +93,11 @@ CREATE TABLE operation_log (
     UNIQUE(room_id, revision)
 );
 
--- Hot path: fetching history since revision N for transform catchup
 CREATE INDEX idx_op_log_room_rev ON operation_log(room_id, revision ASC);
 
 -- ================================
 -- DOCUMENT SNAPSHOTS
 -- ================================
--- Written every SNAPSHOT_EVERY_N_OPS (50) or on room close.
--- Recovery = latest snapshot + replay operation_log since that revision.
--- DESC index because we always want the latest snapshot first.
 
 CREATE TABLE document_snapshots (
     id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -109,16 +110,25 @@ CREATE TABLE document_snapshots (
 
 CREATE INDEX idx_snapshots_room_rev ON document_snapshots(room_id, revision DESC);
 
+
 -- ================================
--- DONE
+-- MIGRATION v2
 -- ================================
--- New tables:
---   rooms
---   room_participants
---   room_join_requests
---   operation_log
---   document_snapshots
+-- If running against an existing v1 schema (rooms + room_participants
+-- already exist without the new columns), run these ALTERs instead
+-- of the full CREATE TABLE block above.
 --
--- All foreign keys reference users(user_id) — consistent with existing schema.
--- All timestamps use TIMESTAMP — consistent with existing schema.
--- uuid_generate_v4() used — consistent with existing schema.
+-- ALTER TABLE rooms
+--     ADD COLUMN IF NOT EXISTS is_locked        BOOLEAN NOT NULL DEFAULT FALSE,
+--     ADD COLUMN IF NOT EXISTS password_hash    TEXT,
+--     ADD COLUMN IF NOT EXISTS password_version INT NOT NULL DEFAULT 0,
+--     ADD COLUMN IF NOT EXISTS cohost_id        UUID REFERENCES users(user_id) ON DELETE SET NULL;
+--
+-- ALTER TABLE room_participants
+--     ADD COLUMN IF NOT EXISTS role     TEXT NOT NULL DEFAULT 'participant',
+--     ADD COLUMN IF NOT EXISTS is_muted BOOLEAN NOT NULL DEFAULT FALSE;
+--
+-- ALTER TABLE room_participants
+--     ADD CONSTRAINT chk_participant_role
+--     CHECK (role IN ('host', 'cohost', 'participant'));
+-- ================================

@@ -7,11 +7,12 @@ import hashlib
 import uuid
 from datetime import datetime, timedelta
 
+from core.utils import safe_log
 import db.connection as db_conn
 from db.users import get_user_by_identifier, get_user_by_id, create_user
-from redis_client import async_redis
-# from mailer import send_password_reset_email
-from mail_service_v2 import send_reset_email
+from core.redis_client import async_redis
+# from services.mailer import send_password_reset_email
+from services.mail_service_v2 import send_reset_email
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -68,7 +69,7 @@ async def signup(data: SignupRequest, response: Response, background_tasks: Back
         user = await create_user(conn, data.username, data.email, pwd_hash)
         
         await create_session(response, str(user["user_id"]))
-        from utils import safe_log
+        
         background_tasks.add_task(safe_log, "User signed up successfully", {"username": data.username, "email": data.email})
         return {"ok": True, "user_id": str(user["user_id"])}
 
@@ -77,17 +78,15 @@ async def login(data: LoginRequest, response: Response, background_tasks: Backgr
     async with db_conn.pool.acquire() as conn:
         user = await get_user_by_identifier(conn, data.identifier)
         if not user:
-            from utils import safe_log
+            
             background_tasks.add_task(safe_log, "Failed login attempt - User not found", {"identifier": data.identifier})
             raise HTTPException(401, "Invalid credentials")
             
         if not verify_password(data.password, user["password_hash"]):
-            from utils import safe_log
             background_tasks.add_task(safe_log, "Failed login attempt - Wrong password", {"identifier": data.identifier})
             raise HTTPException(401, "Invalid credentials")
             
         await create_session(response, str(user["user_id"]))
-        from utils import safe_log
         background_tasks.add_task(safe_log, "User logged in successfully", {"user_id": str(user["user_id"]), "identifier": data.identifier})
         return {"ok": True, "user_id": str(user["user_id"])}
 
