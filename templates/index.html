@@ -43,6 +43,7 @@
       window.__HIGHLIGHTS__ = "{{ highlights | default('') }}";
       window.__IS_PROTECTED__ = "{{ 'true' if is_protected else 'false' }}" === "true";
       window.__CODE_ID__ = "{{ code_id | default('') }}";
+      window.__USER_ID__ = "{{ user_id | default('') }}";
     </script>
 
     <!-- TOP BAR -->
@@ -94,6 +95,14 @@
         <button class="side-btn" id="downloadBtn" title="Download">
           <span class="icon">↓</span>
           <span class="label">Download</span>
+        </button>
+        <button class="side-btn" id="fileImportBtn" title="Import Text File">
+          <span class="icon">📄</span>
+          <span class="label">Import File</span>
+        </button>
+        <button class="side-btn" id="binaryUploadBtn" title="Upload File">
+          <span class="icon">📦</span>
+          <span class="label">Upload File</span>
         </button>
         <button class="side-btn" id="imageUploadBtn" title="Upload Image">
           <span class="icon">📷</span>

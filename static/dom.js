@@ -23,6 +23,8 @@ export const searchBtn   = document.getElementById("searchBtn");
 export const shareBtn    = document.getElementById("shareBtn");
 export const newBtn      = document.getElementById("newBtn");
 export const downloadBtn = document.getElementById("downloadBtn");
+export const fileImportBtn = document.getElementById("fileImportBtn");
+export const binaryUploadBtn = document.getElementById("binaryUploadBtn");
 
 export const shareBar = document.getElementById("share-bar");
 export const shareUrl = document.getElementById("shareUrl");

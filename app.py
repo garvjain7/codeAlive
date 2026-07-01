@@ -25,6 +25,7 @@ from api.workspace_router import router as workspace_router
 from ot_collab.ws_router import router as collab_ws_router
 from api.collab_router import router as collab_http_router
 from api.auth_router import router as auth_router
+from api.file_router import router as file_router
 from ot_collab.grace_sweeper import start_grace_sweeper
 # from services.mailer import send_waitlist_email
 from services.mail_service_v2 import send_waitlist_email
@@ -87,6 +88,7 @@ app.include_router(workspace_router)
 app.include_router(collab_http_router)
 app.include_router(collab_ws_router)
 app.include_router(auth_router)
+app.include_router(file_router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

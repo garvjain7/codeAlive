@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ filename }} - CodeAlive File</title>
+    <style>
+      body { font-family: Arial, sans-serif; margin: 0; background: #0f172a; color: #f8fafc; }
+      .shell { max-width: 900px; margin: 0 auto; padding: 32px 20px 48px; }
+      .card { background: #111827; border: 1px solid #334155; border-radius: 16px; padding: 24px; }
+      .meta { color: #94a3b8; margin-bottom: 16px; }
+      .actions { display: flex; gap: 12px; margin-bottom: 20px; }
+      .btn { display: inline-block; padding: 10px 14px; border-radius: 10px; text-decoration: none; color: white; background: #2563eb; }
+      .btn.secondary { background: #475569; }
+      .preview { background: #020617; border: 1px solid #334155; border-radius: 12px; padding: 16px; overflow: auto; white-space: pre-wrap; }
+      iframe { width: 100%; min-height: 70vh; border: 0; background: white; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <div class="card">
+        <h1>{{ filename }}</h1>
+        <div class="meta">Type: {{ content_type }} · Size: {{ size_bytes }} bytes</div>
+        <div class="actions">
+          <a class="btn" href="{{ download_url }}">Download</a>
+          <a class="btn secondary" href="/editor">Back to editor</a>
+        </div>
+        {% if is_password_protected %}
+          <form action="/api/files/view/{{ file_id }}/unlock" method="post" style="margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="password" name="password" placeholder="Enter password" style="padding:10px 12px;border-radius:8px;border:1px solid #475569;background:#020617;color:white;min-width:220px;" />
+            <button type="submit" class="btn">Unlock</button>
+          </form>
+        {% elif content_type.startswith('image/') %}
+          <img src="{{ download_url }}" alt="{{ filename }}" style="max-width:100%;border-radius:12px;" />
+        {% elif content_type.startswith('text/') or content_type in ['application/json','application/xml','application/javascript','text/plain'] %}
+          <div class="preview">{{ preview_text or content_type }}</div>
+        {% else %}
+          <iframe src="{{ download_url }}"></iframe>
+        {% endif %}
+      </div>
+    </div>
+  </body>
+</html>
