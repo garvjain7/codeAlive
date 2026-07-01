@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from PIL import Image
 import uuid
 
-from mongodb import images_collection
+from core.mongodb import images_collection
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 

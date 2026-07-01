@@ -3,7 +3,7 @@ import base64
 from fastapi import APIRouter, UploadFile, File, HTTPException
 from fastapi.responses import Response
 
-from image_service import save_image, get_image
+from services.image_service import save_image, get_image
 
 router = APIRouter()
 

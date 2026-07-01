@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from db.connection import get_conn
 from db.snippets import create_anonymous, create_user_snippet, get_snippet_by_code_id
 from db.access_control import get_or_create_access, increment_failed_attempt, mark_success
-from utils import validate_code, generate_id, compress_code
+from core.utils import validate_code, generate_id, compress_code
 
 router = APIRouter(prefix="/api/snippets", tags=["snippets"])
 

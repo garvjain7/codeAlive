@@ -3,6 +3,7 @@ from db.connection import get_conn
 from datetime import datetime, timedelta
 import bcrypt
 import uuid
+from ot_collab.db import rooms as collab_db
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
 
@@ -152,4 +153,20 @@ async def update_snippet_expiry(code_id: str, request: Request, payload: dict = 
             "expires_at": final_expiry.isoformat(),
             "capped": final_expiry == max_possible_expiry
         }
+
+
+@router.get("/workshops")
+async def get_active_workshops(request: Request):
+    """Return all active workshops the user can join or is hosting."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+        
+    async with get_conn() as conn:
+        workshops = await collab_db.get_active_workshops(conn, user_id)
+        # Hydrate with member list for the UI
+        for w in workshops:
+            w["members"] = await collab_db.get_room_member_usernames(conn, str(w["room_id"]))
+            
+        return {"workshops": workshops}
 

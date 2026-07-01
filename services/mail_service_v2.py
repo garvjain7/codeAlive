@@ -92,3 +92,14 @@ def send_reset_email(to_email: str, token: str) -> bool:
 def send_verification_email(to_email: str, token: str) -> bool:
     """Send account verification email via the mail microservice."""
     return _call_mail_service("/send/verify", {"to": to_email, "token": token})
+
+
+def send_workshop_invitation(to_email: str, room_title: str, room_url: str, host_name: str) -> bool:
+    """Send a workshop invitation email via the mail microservice."""
+    payload = {
+        "to": to_email,
+        "room_title": room_title,
+        "room_url": room_url,
+        "host_name": host_name
+    }
+    return _call_mail_service("/send/workshop-invite", payload)

@@ -58,17 +58,35 @@ async def update_room_revision(conn, room_id: str, revision: int) -> None:
 
 # ── Participants ───────────────────────────────────────────────────────────────
 
-async def add_participant(conn, room_id: str, user_id: str) -> None:
+async def add_participant(conn, room_id: str, user_id: str, role: str = 'participant') -> None:
     """
     Add a user as an approved participant.
     ON CONFLICT DO NOTHING makes this safe to call on reconnect —
     the UNIQUE(room_id, user_id) constraint prevents duplicates.
     """
     await conn.execute("""
-        INSERT INTO room_participants (room_id, user_id)
-        VALUES ($1, $2)
+        INSERT INTO room_participants (room_id, user_id, role)
+        VALUES ($1, $2, $3)
         ON CONFLICT (room_id, user_id) DO NOTHING
+    """, uuid.UUID(room_id), uuid.UUID(user_id), role)
+
+
+async def get_participant(conn, room_id: str, user_id: str) -> Optional[dict]:
+    """Fetch participant details (role, is_muted) by room and user."""
+    row = await conn.fetchrow("""
+        SELECT * FROM room_participants
+        WHERE room_id = $1 AND user_id = $2
     """, uuid.UUID(room_id), uuid.UUID(user_id))
+    return dict(row) if row else None
+
+
+async def set_participant_muted(conn, room_id: str, user_id: str, is_muted: bool) -> None:
+    """Update a participant's muted status."""
+    await conn.execute("""
+        UPDATE room_participants
+        SET is_muted = $1
+        WHERE room_id = $2 AND user_id = $3
+    """, is_muted, uuid.UUID(room_id), uuid.UUID(user_id))
 
 
 async def is_participant(conn, room_id: str, user_id: str) -> bool:
@@ -81,15 +99,23 @@ async def is_participant(conn, room_id: str, user_id: str) -> bool:
 
 
 async def get_participants(conn, room_id: str) -> list[dict]:
-    """Return all participants with user info joined."""
+    """Return all participants with user info, role, and mute state."""
     rows = await conn.fetch("""
-        SELECT rp.user_id, u.username, rp.joined_at
+        SELECT rp.user_id, u.username, rp.role, rp.is_muted, rp.joined_at
         FROM room_participants rp
         JOIN users u ON u.user_id = rp.user_id
         WHERE rp.room_id = $1
         ORDER BY rp.joined_at ASC
     """, uuid.UUID(room_id))
     return [dict(r) for r in rows]
+
+
+async def remove_participant(conn, room_id: str, user_id: str) -> None:
+    """Remove a participant from the room."""
+    await conn.execute("""
+        DELETE FROM room_participants
+        WHERE room_id = $1 AND user_id = $2
+    """, uuid.UUID(room_id), uuid.UUID(user_id))
 
 
 # ── Join requests ─────────────────────────────────────────────────────────────
@@ -142,3 +168,92 @@ async def get_pending_request(
         LIMIT 1
     """, uuid.UUID(room_id), uuid.UUID(user_id))
     return dict(row) if row else None
+
+
+# ── Room Configuration ────────────────────────────────────────────────────────
+
+async def set_cohost(conn, room_id: str, user_id: str) -> None:
+    """Set the cohost for a room."""
+    await conn.execute("""
+        UPDATE rooms SET cohost_id = $1 WHERE room_id = $2
+    """, uuid.UUID(user_id), uuid.UUID(room_id))
+    
+    # Also update their role in the participants table
+    await conn.execute("""
+        UPDATE room_participants SET role = 'cohost'
+        WHERE room_id = $1 AND user_id = $2
+    """, uuid.UUID(room_id), uuid.UUID(user_id))
+
+
+async def clear_cohost(conn, room_id: str, user_id: str) -> None:
+    """Remove cohost status from a user."""
+    await conn.execute("""
+        UPDATE rooms SET cohost_id = NULL WHERE room_id = $1 AND cohost_id = $2
+    """, uuid.UUID(room_id), uuid.UUID(user_id))
+    
+    await conn.execute("""
+        UPDATE room_participants SET role = 'participant'
+        WHERE room_id = $1 AND user_id = $2
+    """, uuid.UUID(room_id), uuid.UUID(user_id))
+
+
+async def set_room_locked(conn, room_id: str, locked: bool) -> None:
+    """Toggle room lock status."""
+    await conn.execute("""
+        UPDATE rooms SET is_locked = $1 WHERE room_id = $2
+    """, locked, uuid.UUID(room_id))
+
+
+async def set_room_password(conn, room_id: str, password_hash: Optional[str]) -> int:
+    """
+    Set or clear the room password.
+    Increments password_version and returns the new value.
+    """
+    row = await conn.fetchrow("""
+        UPDATE rooms
+        SET password_hash = $1, 
+            password_version = password_version + 1,
+            last_active_at = NOW()
+        WHERE room_id = $2
+        RETURNING password_version
+    """, password_hash, uuid.UUID(room_id))
+    return row["password_version"]
+
+
+# ── Discovery ─────────────────────────────────────────────────────────────────
+
+async def get_user_room_history(conn, user_id: str) -> list[dict]:
+    """Get all rooms created by a user with timestamps."""
+    rows = await conn.fetch("""
+        SELECT room_id, title, is_active, created_at, last_active_at
+        FROM rooms
+        WHERE host_id = $1
+        ORDER BY created_at DESC
+    """, uuid.UUID(user_id))
+    return [dict(r) for r in rows]
+
+
+async def get_active_workshops(conn, user_id: str) -> list[dict]:
+    """Get active rooms where user is host or participant."""
+    rows = await conn.fetch("""
+        SELECT DISTINCT r.room_id, r.title, r.host_id, r.is_locked, r.created_at,
+               (SELECT COUNT(*) FROM room_participants WHERE room_id = r.room_id) as member_count
+        FROM rooms r
+        LEFT JOIN room_participants rp ON r.room_id = rp.room_id
+        WHERE (r.host_id = $1 OR rp.user_id = $1)
+          AND r.is_active = TRUE
+        ORDER BY r.created_at DESC
+    """, uuid.UUID(user_id))
+    return [dict(r) for r in rows]
+
+
+async def get_room_member_usernames(conn, room_id: str) -> list[str]:
+    """Get usernames of all participants in a room."""
+    rows = await conn.fetch("""
+        SELECT u.username
+        FROM room_participants rp
+        JOIN users u ON rp.user_id = u.user_id
+        WHERE rp.room_id = $1
+        ORDER BY rp.joined_at ASC
+    """, uuid.UUID(room_id))
+    return [r["username"] for r in rows]

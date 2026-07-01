@@ -4,10 +4,11 @@ venv/
 .env*
 db/__pycache__
 
-clear_session.py
+scripts/clear_session.py
 docs/schema.sql
 docs/queries.sql
 docs/migrate.txt
 docs/ideal_folder_structure.txt
-test_e2e.py
-mailer.py
+tests/test_e2e.py
+services/mailer.py
+neon_keepalive.log

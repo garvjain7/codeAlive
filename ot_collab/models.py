@@ -3,15 +3,16 @@ ot_collab/models.py
 -------------------
 All data models for the OT collaboration system.
 
-Two categories:
-  1. Op / OpType — pure data, used by ot_engine.py and room_state.py
-  2. WS message models — what travels over the WebSocket wire
+Three categories:
+  1. Op / OpType          — pure OT primitives
+  2. ParticipantRole      — role enum used by permissions + Redis + PG
+  3. WS message types     — MsgType constants + inbound message dataclasses
 
-Nothing in this file does I/O. Everything else imports from here.
+Nothing in this file does I/O.
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 import json
@@ -33,18 +34,17 @@ class Op:
     Delete: position + length (chars is None)
 
     position is always a character offset from the start of the document.
-    For multi-char ops (paste, delete-word), chars/length > 1.
     """
     op_type:  OpType
     position: int
-    chars:    Optional[str] = None   # insert only
-    length:   Optional[int] = None   # delete only
+    chars:    Optional[str] = None
+    length:   Optional[int] = None
 
     def __post_init__(self):
         if self.op_type == OpType.INSERT:
             if not self.chars:
                 raise ValueError("Insert op must have chars")
-            self.length = len(self.chars)   # always derived, never trusted from wire
+            self.length = len(self.chars)
         elif self.op_type == OpType.DELETE:
             if self.length is None or self.length <= 0:
                 raise ValueError("Delete op must have length > 0")
@@ -76,54 +76,92 @@ class Op:
 
 
 # ── No-op sentinel ─────────────────────────────────────────────────────────────
-# Returned by transform() when a delete is completely cancelled by a concurrent
-# delete of the same range. The caller must check for this before applying.
 
 class NoOp:
     """Sentinel: operation was rendered moot by a concurrent op."""
     pass
 
 
+# ── Participant role ───────────────────────────────────────────────────────────
+
+class ParticipantRole(str, Enum):
+    HOST        = "host"
+    COHOST      = "cohost"
+    PARTICIPANT = "participant"
+
+
 # ── WebSocket message types ───────────────────────────────────────────────────
-# These are the strings that go in the "type" field of every WS message.
 
 class MsgType:
-    # Client → Server
-    OP              = "op"              # client sends an operation
-    CURSOR          = "cursor"          # client sends cursor position
-    APPROVE_USER    = "approve_user"    # host approves a join request
-    REJECT_USER     = "reject_user"     # host rejects a join request
-    CLOSE_ROOM      = "close_room"      # host closes the room
+    # ── Client → Server ───────────────────────────────────────────────────────
+    OP              = "op"
+    CURSOR          = "cursor"
+    PASSWORD_SUBMIT = "password_submit"   # user submits room password
+    APPROVE_USER    = "approve_user"      # host/cohost approves join request
+    REJECT_USER     = "reject_user"       # host/cohost rejects join request
+    KICK_USER       = "kick_user"         # host/cohost removes participant
+    MUTE_USER       = "mute_user"         # host/cohost silences participant
+    UNMUTE_USER     = "unmute_user"       # host/cohost restores participant
+    PROMOTE_COHOST  = "promote_cohost"    # host only — elevates participant
+    DEMOTE_COHOST   = "demote_cohost"     # host only — removes cohost
+    LOCK_ROOM       = "lock_room"         # host/cohost — no new joins
+    UNLOCK_ROOM     = "unlock_room"       # host/cohost — allow joins again
+    SET_PASSWORD    = "set_password"      # host only — set/change/clear password
+    CLOSE_ROOM      = "close_room"        # host only — permanently end room
 
-    # Server → Client
-    OP_ACK          = "op_ack"          # server confirms op applied (to sender)
-    OP_BROADCAST    = "op_broadcast"    # server broadcasts op (to others)
-    CURSOR_BROADCAST = "cursor_broadcast"
-    JOIN_REQUEST    = "join_request"    # server notifies host of pending user
-    JOIN_APPROVED   = "join_approved"   # server tells user they're in
-    JOIN_REJECTED   = "join_rejected"   # server tells user they're out
+    # ── Server → Client ───────────────────────────────────────────────────────
+    # Op flow
+    OP_ACK             = "op_ack"
+    OP_BROADCAST       = "op_broadcast"
+    CURSOR_BROADCAST   = "cursor_broadcast"
+
+    # Password gate
+    PASSWORD_REQUIRED  = "password_required"   # room has password, please submit
+    PASSWORD_ACCEPTED  = "password_accepted"   # correct, proceeding to join flow
+    PASSWORD_REJECTED  = "password_rejected"   # wrong password
+
+    # Join flow
+    JOIN_REQUEST       = "join_request"        # host notified of pending user
+    JOIN_APPROVED      = "join_approved"       # user admitted to room
+    JOIN_REJECTED      = "join_rejected"       # user denied or timed out
+
+    # Presence
     PARTICIPANT_JOINED = "participant_joined"
     PARTICIPANT_LEFT   = "participant_left"
-    HOST_DISCONNECTED  = "host_disconnected"
+
+    # Moderation — targeted
+    YOU_WERE_KICKED    = "you_were_kicked"
+    YOU_WERE_MUTED     = "you_were_muted"
+    YOU_WERE_UNMUTED   = "you_were_unmuted"
+
+    # Moderation — broadcast (so all clients update their UI)
+    PARTICIPANT_KICKED = "participant_kicked"
+    PARTICIPANT_MUTED  = "participant_muted"
+    PARTICIPANT_UNMUTED= "participant_unmuted"
+
+    # Role changes — broadcast
+    COHOST_PROMOTED    = "cohost_promoted"
+    COHOST_DEMOTED     = "cohost_demoted"
+
+    # Room state — broadcast
+    ROOM_LOCKED        = "room_locked"
+    ROOM_UNLOCKED      = "room_unlocked"
     ROOM_CLOSED        = "room_closed"
+    PASSWORD_CHANGED   = "password_changed"    # broadcast so clients know auth cache is stale
+
+    # Host lifecycle
+    HOST_DISCONNECTED  = "host_disconnected"   # grace period starts
+    HOST_REJOINED      = "host_rejoined"       # grace period cancelled
+    HOST_GRACE_EXPIRED = "host_grace_expired"  # grace period ended, room closing
+
+    # Generic
     ERROR              = "error"
 
 
-# ── Inbound WS messages (Client → Server) ─────────────────────────────────────
+# ── Inbound WS message dataclasses ────────────────────────────────────────────
 
 @dataclass
 class ClientOpMessage:
-    """
-    Client sends this when the user makes an edit.
-
-    op_id: client-generated UUID — idempotency key.
-           If the server receives the same op_id twice (network retry),
-           the second is silently ignored.
-
-    client_revision: the confirmed_doc.revision the client was at when
-                     this op was generated. Server uses this to know
-                     which history ops to transform against.
-    """
     op_id:           str
     room_id:         str
     op:              Op
@@ -141,7 +179,6 @@ class ClientOpMessage:
 
 @dataclass
 class CursorMessage:
-    """Lossy — sent at 50ms debounce, dropped if slow."""
     room_id: str
     line:    int
     col:     int
@@ -156,94 +193,64 @@ class CursorMessage:
 
 
 @dataclass
+class PasswordSubmitMessage:
+    room_id:  str
+    password: str    # plaintext — hashed server-side immediately
+
+    @classmethod
+    def from_dict(cls, d: dict) -> PasswordSubmitMessage:
+        return cls(
+            room_id=d["room_id"],
+            password=d["password"],
+        )
+
+
+@dataclass
 class ApproveRejectMessage:
-    """Host approves or rejects a waiting user."""
     target_user_id: str
     room_id:        str
+    request_id:     str
 
     @classmethod
     def from_dict(cls, d: dict) -> ApproveRejectMessage:
         return cls(
             target_user_id=d["target_user_id"],
             room_id=d["room_id"],
+            request_id=d["request_id"],
         )
 
 
-# ── Outbound WS messages (Server → Client) ────────────────────────────────────
-# These are plain dicts built inline in ws_router.py.
-# Kept as documented constants here for reference.
+@dataclass
+class TargetUserMessage:
+    """
+    Generic single-target moderation message.
+    Used for: kick, mute, unmute, promote, demote.
+    """
+    target_user_id: str
+    room_id:        str
 
-"""
-op_ack → sender:
-{
-    "type":     "op_ack",
-    "op_id":    str,        # echo of client's op_id
-    "revision": int,        # new server revision
-    "op":       Op.to_dict  # transformed op (may differ from sent op)
-}
+    @classmethod
+    def from_dict(cls, d: dict) -> TargetUserMessage:
+        return cls(
+            target_user_id=d["target_user_id"],
+            room_id=d["room_id"],
+        )
 
-op_broadcast → all others:
-{
-    "type":     "op_broadcast",
-    "op":       Op.to_dict,
-    "revision": int,
-    "user_id":  str
-}
 
-join_approved → new participant:
-{
-    "type":     "join_approved",
-    "content":  str,        # full document content at this moment
-    "revision": int,        # current server revision
-    "users":    [           # currently connected users for presence
-        {"user_id": str, "username": str, "color": str}
-    ]
-}
+@dataclass
+class SetPasswordMessage:
+    room_id:  str
+    password: Optional[str]   # None = clear password (remove protection)
 
-join_request → host:
-{
-    "type":        "join_request",
-    "user_id":     str,
-    "username":    str,
-    "request_id":  str
-}
-
-participant_joined → all:
-{
-    "type":     "participant_joined",
-    "user_id":  str,
-    "username": str,
-    "color":    str
-}
-
-participant_left → all:
-{
-    "type":    "participant_left",
-    "user_id": str
-}
-
-host_disconnected → all:
-{
-    "type": "host_disconnected"
-}
-
-room_closed → all:
-{
-    "type": "room_closed"
-}
-
-error → sender:
-{
-    "type":    "error",
-    "code":    str,     # machine-readable: "room_not_found", "not_participant", etc.
-    "message": str      # human-readable
-}
-"""
+    @classmethod
+    def from_dict(cls, d: dict) -> SetPasswordMessage:
+        return cls(
+            room_id=d["room_id"],
+            password=d.get("password") or None,
+        )
 
 
 # ── User color pool ───────────────────────────────────────────────────────────
-# Assigned on join, stored in Redis room users hash.
-# Chosen to be visually distinct on dark backgrounds (oneDark theme).
 
 PARTICIPANT_COLORS = [
     "#64b5f6",  # blue
@@ -261,12 +268,13 @@ def assign_color(existing_colors: list[str]) -> str:
     for c in PARTICIPANT_COLORS:
         if c not in existing_colors:
             return c
-    # All taken — cycle from start (>8 participants)
     return PARTICIPANT_COLORS[len(existing_colors) % len(PARTICIPANT_COLORS)]
 
 
-# ── Snapshot trigger ──────────────────────────────────────────────────────────
+# ── System constants ──────────────────────────────────────────────────────────
 
-SNAPSHOT_EVERY_N_OPS = 50   # write a snapshot every N operations
-ROOM_TTL_SECONDS     = 86400  # 24 hours
-JOIN_TIMEOUT_SECONDS = 120    # 2 minutes for host to approve
+SNAPSHOT_EVERY_N_OPS   = 50     # write a PG snapshot every N operations
+ROOM_TTL_SECONDS       = 86400  # 24 hours — Redis key lifetime
+JOIN_TIMEOUT_SECONDS   = 120    # 2 minutes for host to approve a join request
+GRACE_PERIOD_SECONDS   = 300    # 5 minutes for host to reconnect after disconnect
+GRACE_SWEEPER_INTERVAL = 30     # sweeper wakes every 30 seconds

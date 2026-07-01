@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Request
 from db.connection import get_conn
 import uuid
+from ot_collab.db import rooms as collab_db
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
@@ -22,6 +23,7 @@ async def get_profile_summary(request: Request):
         total = await conn.fetchval("SELECT COUNT(*) FROM user_snippets WHERE owner_id = $1", user_id)
         protected = await conn.fetchval("SELECT COUNT(*) FROM user_snippets WHERE owner_id = $1 AND is_password_protected = TRUE", user_id)
         langs_count = await conn.fetchval("SELECT COUNT(DISTINCT language) FROM user_snippets WHERE owner_id = $1", user_id)
+        room_count = await conn.fetchval("SELECT COUNT(*) FROM rooms WHERE host_id = $1", user_id)
         
         # 3. Language Distribution
         lang_rows = await conn.fetch("""
@@ -59,8 +61,21 @@ async def get_profile_summary(request: Request):
             "stats": {
                 "total": total,
                 "protected": protected,
-                "languages": langs_count
+                "languages": langs_count,
+                "rooms": room_count
             },
             "languages": lang_dist,
             "recent": [dict(r) for r in recent_rows]
         }
+
+
+@router.get("/collab-history")
+async def get_collab_history(request: Request):
+    """Return history of all workshops created by the user."""
+    user_id_raw = getattr(request.state, "user_id", None)
+    if not user_id_raw:
+        raise HTTPException(401, "Login required")
+        
+    async with get_conn() as conn:
+        history = await collab_db.get_user_room_history(conn, user_id_raw)
+        return {"history": history}
