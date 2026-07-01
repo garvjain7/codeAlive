@@ -20,9 +20,12 @@ from db.users import get_user_by_id
 from datetime import datetime, timedelta
 import uuid
 
-from api.auth_router import router as auth_router
-from api.workspace_router import router as workspace_router
 from api.profile_router import router as profile_router
+from api.workspace_router import router as workspace_router
+from ot_collab.ws_router import router as collab_ws_router
+from api.collab_router import router as collab_http_router
+from api.auth_router import router as auth_router
+from ot_collab.grace_sweeper import start_grace_sweeper
 # from services.mailer import send_waitlist_email
 from services.mail_service_v2 import send_waitlist_email
 from core.mongodb import waitlist_collection
@@ -58,13 +61,18 @@ async def lifespan(app: FastAPI):
     # Start Neon DB keepalive loop
     keepalive_task = asyncio.create_task(neon_keepalive_loop())
     
+    # Start Collaboration Grace Sweeper (scans for host timeouts)
+    sweeper_task = asyncio.create_task(start_grace_sweeper())
+    
     yield
     
-    # Shutdown: Cancel keepalive task
+    # Shutdown: Cancel background tasks
     keepalive_task.cancel()
+    sweeper_task.cancel()
+    
     try:
-        await keepalive_task
-    except asyncio.CancelledError:
+        await asyncio.gather(keepalive_task, sweeper_task, return_exceptions=True)
+    except Exception:
         pass
         
     # Shutdown: Close pool
@@ -74,9 +82,11 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(AuthMiddleware)
 app.include_router(image_router)
 app.include_router(api_snippets_router)
-app.include_router(auth_router)
-app.include_router(workspace_router)
 app.include_router(profile_router)
+app.include_router(workspace_router)
+app.include_router(collab_http_router)
+app.include_router(collab_ws_router)
+app.include_router(auth_router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

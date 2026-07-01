@@ -40,6 +40,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from datetime import datetime, timedelta
 
 import db.connection as db_conn
 from .models import MsgType, GRACE_SWEEPER_INTERVAL
@@ -59,45 +60,74 @@ async def start_grace_sweeper() -> None:
     logger.info("[GraceSweeper] started")
 
     # Immediate sweep handles rooms that were in grace period before a restart
-    await _sweep()
+    await _sweep() #type: ignore
 
     while True:
         try:
             await asyncio.sleep(GRACE_SWEEPER_INTERVAL)
-            await _sweep()
+            await _sweep_grace_periods()
+            await _sweep_hard_expiry()
         except asyncio.CancelledError:
             logger.info("[GraceSweeper] cancelled — shutting down")
             raise
         except Exception as e:
             # Never let the sweeper crash — log and continue
-            logger.error(f"[GraceSweeper] sweep error: {e}")
+            logger.error(f"[Sweeper] sweep error: {e}")
 
 
-async def _sweep() -> None:
+async def _sweep_grace_periods() -> None:
     """
     Scan Redis for expired grace periods and close those rooms.
     """
     now = time.time()
-
     try:
         grace_entries = await room_state.scan_grace_keys()
-    except Exception as e:
-        logger.error(f"[GraceSweeper] scan_grace_keys failed: {e}")
+    except Exception:
         return
 
     for room_id, grace_until in grace_entries:
         if now >= grace_until:
-            logger.info(
-                f"[GraceSweeper] grace expired room={room_id} "
-                f"(expired {now - grace_until:.1f}s ago)"
-            )
-            await _close_expired_room(room_id)
+            await _close_room(room_id, reason="grace_expired")
 
 
-async def _close_expired_room(room_id: str) -> None:
+async def _sweep_hard_expiry() -> None:
     """
-    Close a room whose host grace period has expired.
+    Scan PG for rooms older than 24 hours and close them.
+    Also sends a 5-minute warning to rooms approaching the limit.
+    """
+    try:
+        async with db_conn.pool.acquire() as conn:
+            # Fetch all active rooms
+            rooms = await conn.fetch("SELECT room_id, title, created_at FROM rooms WHERE is_active = TRUE")
+            
+            now_utc = datetime.now()
+            for r in rooms:
+                room_id = str(r["room_id"])
+                age = now_utc - r["created_at"]
+                
+                # 1. Hard Expiry (24h)
+                if age >= timedelta(hours=24):
+                    logger.info(f"[Sweeper] Hard expiry (24h) reached for room={room_id}")
+                    await _close_room(room_id, reason="hard_expiry")
+                
+                # 2. 5-minute Warning (23h 55m)
+                elif age >= timedelta(hours=23, minutes=55):
+                    # Check if warning already sent
+                    warning_key = f"room:{room_id}:expiry_warning_sent"
+                    if not await async_redis.get(warning_key): #type: ignore
+                        await manager.broadcast(room_id, {
+                            "type": MsgType.ROOM_CLOSED, # Or a more specific type if we add it
+                            "message": "Notice: This workshop will end in 5 minutes (24h limit reached).",
+                            "countdown": 300
+                        })
+                        await async_redis.set(warning_key, "1", ex=600) #type:ignore # Expire after 10 mins
+    except Exception as e:
+        logger.error(f"[Sweeper] hard_expiry sweep failed: {e}")
 
+
+async def _close_room(room_id: str, reason: str) -> None:
+    """
+    Common closure logic for any reason.
     Steps:
       1. Verify room is still active in PG (may have been closed another way)
       2. Save final snapshot
@@ -139,13 +169,18 @@ async def _close_expired_room(room_id: str) -> None:
         # Continue — still want to broadcast and clean Redis
 
     # ── 4. Broadcast to connected clients ─────────────────────────────────────
+    msg = "The host did not reconnect. The room has been closed."
+    if reason == "hard_expiry":
+        msg = "This workshop has ended after its 24-hour limit."
+
     try:
         await manager.broadcast(room_id, {
-            "type":    MsgType.HOST_GRACE_EXPIRED,
-            "message": "Host did not reconnect. The room has been closed.",
+            "type":    MsgType.ROOM_CLOSED,
+            "message": msg,
+            "reason":  reason
         })
     except Exception as e:
-        logger.error(f"[GraceSweeper] broadcast failed room={room_id}: {e}")
+        logger.error(f"[Sweeper] broadcast failed room={room_id}: {e}")
 
     # ── 5. Expire Redis ────────────────────────────────────────────────────────
     try:

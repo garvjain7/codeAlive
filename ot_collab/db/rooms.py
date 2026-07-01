@@ -110,6 +110,14 @@ async def get_participants(conn, room_id: str) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+async def remove_participant(conn, room_id: str, user_id: str) -> None:
+    """Remove a participant from the room."""
+    await conn.execute("""
+        DELETE FROM room_participants
+        WHERE room_id = $1 AND user_id = $2
+    """, uuid.UUID(room_id), uuid.UUID(user_id))
+
+
 # ── Join requests ─────────────────────────────────────────────────────────────
 
 async def create_join_request(conn, room_id: str, user_id: str) -> dict:
@@ -210,3 +218,42 @@ async def set_room_password(conn, room_id: str, password_hash: Optional[str]) ->
         RETURNING password_version
     """, password_hash, uuid.UUID(room_id))
     return row["password_version"]
+
+
+# ── Discovery ─────────────────────────────────────────────────────────────────
+
+async def get_user_room_history(conn, user_id: str) -> list[dict]:
+    """Get all rooms created by a user with timestamps."""
+    rows = await conn.fetch("""
+        SELECT room_id, title, is_active, created_at, last_active_at
+        FROM rooms
+        WHERE host_id = $1
+        ORDER BY created_at DESC
+    """, uuid.UUID(user_id))
+    return [dict(r) for r in rows]
+
+
+async def get_active_workshops(conn, user_id: str) -> list[dict]:
+    """Get active rooms where user is host or participant."""
+    rows = await conn.fetch("""
+        SELECT DISTINCT r.room_id, r.title, r.host_id, r.is_locked, r.created_at,
+               (SELECT COUNT(*) FROM room_participants WHERE room_id = r.room_id) as member_count
+        FROM rooms r
+        LEFT JOIN room_participants rp ON r.room_id = rp.room_id
+        WHERE (r.host_id = $1 OR rp.user_id = $1)
+          AND r.is_active = TRUE
+        ORDER BY r.created_at DESC
+    """, uuid.UUID(user_id))
+    return [dict(r) for r in rows]
+
+
+async def get_room_member_usernames(conn, room_id: str) -> list[str]:
+    """Get usernames of all participants in a room."""
+    rows = await conn.fetch("""
+        SELECT u.username
+        FROM room_participants rp
+        JOIN users u ON rp.user_id = u.user_id
+        WHERE rp.room_id = $1
+        ORDER BY rp.joined_at ASC
+    """, uuid.UUID(room_id))
+    return [r["username"] for r in rows]
