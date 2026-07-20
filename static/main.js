@@ -31,8 +31,8 @@ import {
   imagePlugin 
 } from "./image-handler.js";
 import { initUnlock } from "./unlock.js";
-import { initEditorFileImport } from "./editor-file-import.js";
-import { initBinaryUpload } from "./file-upload.js";
+import { initEditorFileImport, inferLanguageFromFileName } from "./editor-file-import.js";
+import { initBinaryUpload, openBinaryUploadModal } from "./file-upload.js";
 
 import "./ui.js";
 import "./modal.js";
@@ -94,6 +94,9 @@ window.addEventListener("beforeunload", (e) => {
   initImageHandler();
   initUnlock();
   initBinaryUpload();
+  if (window.__AUTO_OPEN_UPLOAD__) {
+    openBinaryUploadModal();
+  }
 
   // 5. Wire Update Listener for Detection
   view.dispatch({
@@ -128,7 +131,23 @@ window.addEventListener("beforeunload", (e) => {
   });
 
   // 6. Handle Content Loading
-  if (encoded.length > 0 && !window.__IS_PROTECTED__) {
+  const importedText = sessionStorage.getItem("imported_text");
+  const importedFilename = sessionStorage.getItem("imported_filename");
+  if (importedText !== null) {
+    sessionStorage.removeItem("imported_text");
+    sessionStorage.removeItem("imported_filename");
+    view.dispatch({
+      changes: {
+        from: 0,
+        to: view.state.doc.length,
+        insert: importedText,
+      },
+    });
+    const detectedLang = inferLanguageFromFileName(importedFilename);
+    await setLanguage(detectedLang);
+    view.focus();
+    showToast("File imported into the editor.");
+  } else if (encoded.length > 0 && !window.__IS_PROTECTED__) {
     await loadEncodedSnippet(encoded, language, storedHighlights);
   } else if (!window.__IS_PROTECTED__) {
     // New snippet mode

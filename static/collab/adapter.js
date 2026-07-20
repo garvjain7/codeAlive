@@ -4,8 +4,8 @@
  * The "Translator" between CodeMirror 6 and the Sync Engine.
  */
 
-import { EditorView, Decoration, WidgetType } from "https://esm.sh/@codemirror/view";
-import { StateField, StateEffect } from "https://esm.sh/@codemirror/state";
+import { EditorView, Decoration, WidgetType } from "@codemirror/view";
+import { StateField, StateEffect } from "@codemirror/state";
 
 export class CodeMirrorAdapter {
     constructor(view, engine) {

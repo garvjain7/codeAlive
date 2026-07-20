@@ -150,6 +150,6 @@ async def mark_file_access_success(conn, record_id, user_id: str) -> None:
             first_success_at = COALESCE(first_success_at, now())
         WHERE file_id = $1 AND user_id = $2
         """,
-        file_id,
+        record_id,
         user_id,
     )

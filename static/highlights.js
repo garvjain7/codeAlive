@@ -2,11 +2,11 @@
 import {
   Decoration,
   EditorView,
-} from "https://esm.sh/@codemirror/view";
+} from "@codemirror/view";
 import {
   StateField,
   StateEffect,
-} from "https://esm.sh/@codemirror/state";
+} from "@codemirror/state";
 
 import {
   highlightPopup,

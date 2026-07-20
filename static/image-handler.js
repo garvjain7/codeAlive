@@ -4,7 +4,7 @@ import {
   Decoration,
   ViewPlugin,
   MatchDecorator,
-} from "https://esm.sh/@codemirror/view";
+} from "@codemirror/view";
 
 import { editorContainer } from "./dom.js";
 import { showError } from "./ui.js";

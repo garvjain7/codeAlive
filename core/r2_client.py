@@ -12,11 +12,12 @@ def _require_env(name: str) -> str:
 
 
 def get_r2_client() -> Tuple[object, str]:
+    account_id = _require_env("R2_ACCOUNT_ID")
     endpoint_url = _require_env("R2_ENDPOINT_URL")
     access_key_id = _require_env("R2_ACCESS_KEY_ID")
     secret_access_key = _require_env("R2_SECRET_ACCESS_KEY")
     bucket_name = _require_env("R2_BUCKET_NAME")
-    region_name = os.getenv("R2_REGION", "auto")
+    region_name = _require_env("R2_REGION")
 
     client = boto3.client(
         "s3",
@@ -24,5 +25,6 @@ def get_r2_client() -> Tuple[object, str]:
         aws_access_key_id=access_key_id,
         aws_secret_access_key=secret_access_key,
         region_name=region_name,
+        config=boto3.session.Config(signature_version="s3v4"),
     )
     return client, bucket_name

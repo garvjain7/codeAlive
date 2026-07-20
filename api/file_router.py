@@ -5,7 +5,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from services.file_service import load_uploaded_file, save_uploaded_file, validate_upload_file
-from core.utils import generate_id
+from core.utils import compress_code, generate_id, validate_code
+from db.snippets import create_anonymous, create_user_snippet
 from db.connection import get_conn
 from db.file_uploads import (
     clear_failed_access_attempts,
@@ -22,6 +23,56 @@ from datetime import datetime, timedelta
 
 router = APIRouter(prefix="/api/files", tags=["files"])
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(os.path.dirname(__file__)), "templates"))
+
+
+async def build_file_view_response(request: Request, file_id: str):
+    stored_file = load_uploaded_file(file_id)
+    if not stored_file:
+        raise HTTPException(404, "File not found")
+
+    async with get_conn() as conn:
+        record = await get_file_record(conn, file_id)
+        if record and record.get("share_type") == "user":
+            if record.get("expires_at") and record["expires_at"] < datetime.utcnow():
+                raise HTTPException(404, "File has expired")
+            user_id = getattr(request.state, "user_id", None)
+            if record.get("is_password_protected") and not user_id:
+                raise HTTPException(403, "Password protected")
+            if record.get("is_password_protected") and user_id:
+                access = await get_access_control(conn, record.get("record_id"), user_id)
+                if access and access.get("locked_until") and access["locked_until"] > datetime.utcnow():
+                    raise HTTPException(403, "Too many failed attempts")
+
+    preview_text = None
+    if stored_file["content_type"].startswith("text/") or stored_file["content_type"] in {
+        "application/json",
+        "application/xml",
+        "application/javascript",
+        "text/plain",
+    }:
+        try:
+            preview_text = stored_file["content"].decode("utf-8")
+        except UnicodeDecodeError:
+            preview_text = stored_file["content"].decode("utf-8", errors="replace")
+
+    return templates.TemplateResponse(
+        "import.html",
+        {
+            "request": request,
+            "file_id": file_id,
+            "filename": stored_file["filename"],
+            "content_type": stored_file["content_type"],
+            "size_bytes": stored_file["size_bytes"],
+            "download_url": f"/api/files/{file_id}",
+            "share_url": f"/f/{file_id}",
+            "user_id": getattr(request.state, "user_id", None),
+            "is_password_protected": bool(record and record.get("is_password_protected")),
+            "preview_text": preview_text,
+            "preview_mode": "share",
+            "preview_url": f"/api/files/{file_id}",
+            "preview_content_type": stored_file["content_type"],
+        },
+    )
 
 
 @router.post("/upload")
@@ -42,8 +93,45 @@ async def upload_file(
         raise HTTPException(400, validation["error"])
 
     user_id = getattr(request.state, "user_id", None)
+    if validation.get("is_text"):
+        text = raw_bytes.decode("utf-8", errors="strict")
+        validate_code(text)
+
+        async with get_conn() as conn:
+            code_id = generate_id()
+            if user_id:
+                if not title:
+                    title = file.filename or "Imported Text"
+                expires_at = datetime.utcnow() + timedelta(days=expires_in_days or 30)
+                await create_user_snippet(
+                    conn,
+                    code_id=code_id,
+                    owner_id=user_id,
+                    encoded_content=compress_code(text),
+                    language="text",
+                    highlights="",
+                    password_hash=hash_password(password) if password else None,
+                    expires_at=expires_at,
+                    title=title.strip(),
+                )
+            else:
+                await create_anonymous(
+                    conn,
+                    code_id=code_id,
+                    encoded_content=compress_code(text),
+                    language="text",
+                    highlights="",
+                )
+
+        return JSONResponse({
+            "ok": True,
+            "code_id": code_id,
+            "url": f"/s/{code_id}",
+            "message": "Text file imported into the editor flow.",
+        })
+
     if user_id and not title:
-        raise HTTPException(400, "Title is mandatory for logged-in file uploads")
+        title = file.filename or "Imported File"
 
     file_id = generate_id()
     saved_file = save_uploaded_file(
@@ -83,6 +171,7 @@ async def upload_file(
         "filename": saved_file["filename"],
         "content_type": saved_file["content_type"],
         "size_bytes": saved_file["size_bytes"],
+        "url": f"/f/{saved_file['file_id']}",
         "message": "Upload stored successfully.",
     })
 
@@ -102,7 +191,7 @@ async def get_file(request: Request, file_id: str):
             if record.get("is_password_protected") and not user_id:
                 raise HTTPException(403, "Password protected")
             if record.get("is_password_protected") and user_id:
-                access = await get_access_control(conn, file_id, user_id)
+                access = await get_access_control(conn, record.get("record_id"), user_id)
                 if access and access.get("locked_until") and access["locked_until"] > datetime.utcnow():
                     raise HTTPException(403, "Too many failed attempts")
                 if not access or not access.get("first_success_at"):
@@ -133,7 +222,7 @@ async def view_file(request: Request, file_id: str):
             if record.get("is_password_protected") and not user_id:
                 raise HTTPException(403, "Password protected")
             if record.get("is_password_protected") and user_id:
-                access = await get_access_control(conn, file_id, user_id)
+                access = await get_access_control(conn, record.get("record_id"), user_id)
                 if access and access.get("locked_until") and access["locked_until"] > datetime.utcnow():
                     raise HTTPException(403, "Too many failed attempts")
 
@@ -150,7 +239,7 @@ async def view_file(request: Request, file_id: str):
             preview_text = stored_file["content"].decode("utf-8", errors="replace")
 
     return templates.TemplateResponse(
-        "file_viewer.html",
+        "import.html",
         {
             "request": request,
             "file_id": file_id,
@@ -158,8 +247,13 @@ async def view_file(request: Request, file_id: str):
             "content_type": stored_file["content_type"],
             "size_bytes": stored_file["size_bytes"],
             "download_url": f"/api/files/{file_id}",
+            "share_url": f"/f/{file_id}",
+            "user_id": getattr(request.state, "user_id", None),
             "is_password_protected": bool(record and record.get("is_password_protected")),
             "preview_text": preview_text,
+            "preview_mode": "share",
+            "preview_url": f"/api/files/{file_id}",
+            "preview_content_type": stored_file["content_type"],
         },
     )
 
@@ -173,12 +267,13 @@ async def unlock_file(request: Request, file_id: str, password: str = Form(...))
         user_id = getattr(request.state, "user_id", None)
         if not user_id:
             raise HTTPException(403, "Authentication required")
-        access = await get_access_control(conn, file_id, user_id)
+        access = await get_access_control(conn, record.get("record_id"), user_id)
         if access and access.get("locked_until") and access["locked_until"] > datetime.utcnow():
             raise HTTPException(403, "Too many failed attempts")
         is_valid = verify_password(password, record.get("password_hash") or "")
         if not is_valid:
             await record_failed_access_attempt(conn, record.get("record_id"), user_id)
             raise HTTPException(403, "Incorrect password")
+        await clear_failed_access_attempts(conn, record.get("record_id"), user_id)
         await mark_file_access_success(conn, record.get("record_id"), user_id)
         return JSONResponse({"ok": True, "message": "Unlocked"})

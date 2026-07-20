@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeAlive — Import File</title>
+    <link rel="stylesheet" href="/static/css/theme.css?v=1.1" />
+    <link rel="stylesheet" href="/static/css/style.css?v=1.1" />
+    <link rel="stylesheet" href="/static/css/home.css?v=1.1" />
+    {% if preview_mode == 'share' %}
+      <link rel="stylesheet" href="/static/css/file-viewer.css?v=1.1" />
+    {% endif %}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
+  </head>
+  <body class="import-layout">
+    <header id="topbar">
+      <div class="logo">Code<span>Alive</span></div>
+      <div class="bar-right">
+        {% if preview_mode == 'share' %}
+          <button id="file-share-btn" class="btn btn-ghost">Share</button>
+          <a id="file-download-btn" href="{{ download_url }}" class="btn btn-ghost" style="text-decoration: none;">Download</a>
+          <a href="/import" class="btn btn-accent" style="text-decoration: none;">Import New</a>
+        {% else %}
+          {% if user_id %}
+            <a href="/workspace" class="btn btn-ghost" style="text-decoration: none;">workspace</a>
+            <a href="/profile" class="nav-avatar-sm" id="importAvatar">{{ user_email[0].upper() if user_email else 'U' }}</a>
+          {% else %}
+            <a href="/login" class="btn btn-ghost" style="text-decoration: none;">login</a>
+            <a href="/signup" class="btn btn-ghost" style="text-decoration: none;">signup</a>
+          {% endif %}
+          <a href="/editor" class="btn btn-accent" style="text-decoration: none;">open editor</a>
+        {% endif %}
+      </div>
+    </header>
+
+    <main class="import-page-shell">
+      {% if preview_mode == 'share' %}
+        <div id="import-preview" class="import-preview">
+          <div class="import-preview-header">
+            <strong id="import-preview-title">Preview</strong>
+            <span id="import-preview-meta"></span>
+          </div>
+          <div id="import-preview-body" class="import-preview-body"></div>
+        </div>
+      {% else %}
+        <section class="import-hero-card">
+          <div class="import-badge">
+            <span class="import-badge-dot"></span>
+            Import file
+          </div>
+          <h1>Bring a file into CodeAlive</h1>
+          <p>
+            Text and code files open in the editor flow. Other supported files stay on this page with a preview-ready share link.
+          </p>
+          <button id="open-import-modal" type="button" class="btn btn-accent">Open import modal</button>
+        </section>
+      {% endif %}
+    </main>
+
+    <div id="import-modal-overlay" class="import-modal-overlay hidden" aria-hidden="true">
+      <div class="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
+        <button id="import-modal-close" type="button" class="import-modal-close" aria-label="Close">×</button>
+        <div class="import-modal-header">
+          <div class="import-badge">
+            <span class="import-badge-dot"></span>
+            Share import
+          </div>
+          <h2 id="import-modal-title">Upload a file</h2>
+          <p>Drop a file here or browse locally. Text/code imports open in the editor, while binary files become shareable assets.</p>
+        </div>
+
+        <div id="import-status" class="import-status"></div>
+
+        <form id="import-form" class="import-form">
+          <label id="import-dropzone" for="import-file-input" class="import-dropzone">
+            <div class="dropzone-prompt" id="dropzone-prompt">
+              <svg class="upload-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; color: var(--accent);">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <strong>Drag & Drop your files or <span style="text-decoration: underline; color: var(--accent);">Browse</span></strong>
+            </div>
+            <div id="dropzone-file-info" class="dropzone-file-info hidden">
+              <strong>Selected file:</strong>
+              <span id="selected-filename"></span>
+            </div>
+            <input id="import-file-input" type="file" />
+          </label>
+
+          <div class="import-info-row">
+            <div class="supported-formats">
+              Supported formats: .txt, .md, .json, .csv, .xml, .yaml, .py, .js, .ts, .css, .html, .pdf, .docx, .xlsx, .png, .jpg, .svg, .mp4
+            </div>
+            <div class="max-size">
+              Maximum size: 5MB
+            </div>
+          </div>
+
+          <div class="import-modal-footer">
+            <button id="import-submit" type="submit" class="btn btn-accent import-submit">Import file</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
+    <script>
+      window.__USER_ID__ = "{{ user_id | default('') }}";
+      window.__PREVIEW_MODE__ = "{{ preview_mode | default('') }}";
+      window.__PREVIEW_URL__ = "{{ preview_url | default('') }}";
+      window.__PREVIEW_TEXT__ = {{ (preview_text or "") | tojson }};
+      window.__PREVIEW_FILENAME__ = {{ (filename or "") | tojson }};
+      window.__PREVIEW_CONTENT_TYPE__ = {{ (content_type or "") | tojson }};
+      window.__PREVIEW_SIZE__ = {{ size_bytes if size_bytes is not none else 0 }};
+    </script>
+    <script type="module" src="/static/import.js"></script>
+  </body>
+</html>

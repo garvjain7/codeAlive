@@ -14,6 +14,13 @@ ALLOWED_EXTENSIONS = {
     "video": {"mp4"},
 }
 
+TEXT_EXTENSIONS = {
+    "txt", "md", "markdown", "json", "csv", "py", "js", "jsx", "ts", "tsx", "css", "html", "xml",
+    "yaml", "yml", "toml", "sql", "c", "cc", "cpp", "cs", "go", "java", "php", "rb", "rs",
+    "swift", "kt", "scala", "sh", "bash", "ps1", "dockerfile", "lua", "r", "dart", "perl", "pl",
+    "vue", "svelte"
+}
+
 
 def _extension_from_name(filename: str) -> str:
     if not filename:
@@ -28,6 +35,15 @@ def validate_upload_file(filename: str, size_bytes: int, mimetype: Optional[str]
     if ext in {"zip", "rar", "7z"}:
         return {"ok": False, "error": "Unsupported file type. ZIP files are not supported."}
 
+    if ext in TEXT_EXTENSIONS:
+        return {
+            "ok": True,
+            "category": "text",
+            "extension": ext,
+            "max_bytes": 1024 * 1024,
+            "is_text": True,
+        }
+
     category = None
     for candidate, rules in ALLOWED_TYPES.items():
         if normalized_mimetype in rules or ext in ALLOWED_EXTENSIONS[candidate]:
@@ -35,7 +51,7 @@ def validate_upload_file(filename: str, size_bytes: int, mimetype: Optional[str]
             break
 
     if not category:
-        return {"ok": False, "error": "Unsupported file type. Only image, document, and video files are supported."}
+        return {"ok": False, "error": "Unsupported file type. Only text/code files, images, documents, and video files are supported."}
 
     max_bytes = None
     for rule_mimetype, rule_size in ALLOWED_TYPES[category].items():
@@ -44,12 +60,12 @@ def validate_upload_file(filename: str, size_bytes: int, mimetype: Optional[str]
             break
 
     if max_bytes is None:
-        return {"ok": False, "error": "Unsupported file type. Only image, document, and video files are supported."}
+        return {"ok": False, "error": "Unsupported file type. Only text/code files, images, documents, and video files are supported."}
 
     if size_bytes > max_bytes:
         return {"ok": False, "error": f"File is too large. Maximum allowed size is {max_bytes // 1024}KB."}
 
-    return {"ok": True, "category": category, "extension": ext, "max_bytes": max_bytes}
+    return {"ok": True, "category": category, "extension": ext, "max_bytes": max_bytes, "is_text": False}
 
 
 def save_uploaded_file(file_id: str, filename: str, content_type: str, content: bytes, storage_dir: Optional[str] = None) -> dict:
