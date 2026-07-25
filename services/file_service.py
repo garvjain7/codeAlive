@@ -3,15 +3,35 @@ from typing import Optional
 from core.r2_client import get_r2_client
 
 ALLOWED_TYPES = {
-    "image": {"image/jpeg": 500 * 1024, "image/png": 500 * 1024, "image/svg+xml": 500 * 1024},
-    "document": {"application/pdf": 500 * 1024, "application/vnd.openxmlformats-officedocument.wordprocessingml.document": 500 * 1024, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": 500 * 1024},
-    "video": {"video/mp4": 5 * 1024 * 1024},
+    "image": {
+        "image/jpeg": 500 * 1024,
+        "image/png": 500 * 1024,
+        "image/svg+xml": 500 * 1024,
+        "image/gif": 500 * 1024,
+        "image/webp": 500 * 1024,
+    },
+    "document": {
+        "application/pdf": 500 * 1024,
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": 500 * 1024,
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": 500 * 1024,
+        "application/vnd.ms-excel": 500 * 1024,
+    },
+    "video": {
+        "video/mp4": 5 * 1024 * 1024,
+        "video/webm": 5 * 1024 * 1024,
+        "video/ogg": 5 * 1024 * 1024,
+    },
+    "audio": {
+        "audio/mpeg": 10 * 1024 * 1024,
+        "audio/mp3": 10 * 1024 * 1024,
+    },
 }
 
 ALLOWED_EXTENSIONS = {
-    "image": {"jpg", "jpeg", "png", "svg"},
-    "document": {"pdf", "docx", "xlsx"},
-    "video": {"mp4"},
+    "image": {"jpg", "jpeg", "png", "svg", "gif", "webp"},
+    "document": {"pdf", "docx", "xlsx", "xls"},
+    "video": {"mp4", "webm", "ogg"},
+    "audio": {"mp3"},
 }
 
 TEXT_EXTENSIONS = {

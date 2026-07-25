@@ -1,5 +1,16 @@
-// ── Inlined helpers from editor-file-import.js ───────────────────────────────
-// (Avoids the ES module import statement that caused SyntaxError on the /import page)
+import { showError } from "./ui.js";
+
+const dataEl = document.getElementById("import-data");
+const textEl = document.getElementById("import-preview-text");
+if (dataEl) {
+  window.__USER_ID__ = dataEl.dataset.userId || "";
+  window.__PREVIEW_MODE__ = dataEl.dataset.previewMode || "";
+  window.__PREVIEW_URL__ = dataEl.dataset.previewUrl || "";
+  window.__PREVIEW_FILENAME__ = dataEl.dataset.previewFilename || "";
+  window.__PREVIEW_CONTENT_TYPE__ = dataEl.dataset.previewContentType || "";
+  window.__PREVIEW_SIZE__ = Number(dataEl.dataset.previewSize || 0);
+  window.__PREVIEW_TEXT__ = textEl ? textEl.textContent : "";
+}
 
 const MAX_TEXT_IMPORT_BYTES = 1024 * 1024;
 
@@ -83,10 +94,11 @@ function inferPreviewKind(file, contentType) {
 
   if (type.startsWith("image/") || ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "image";
   if (type.startsWith("video/") || ["mp4", "webm", "ogg"].includes(ext)) return "video";
+  if (type.startsWith("audio/") || ext === "mp3") return "audio";
   if (type.startsWith("text/")  || TEXT_ALLOWED_EXTENSIONS.has(ext)) return "text";
   if (type === "application/pdf" || ext === "pdf") return "pdf";
   if (type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || ext === "docx") return "docx";
-  if (type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || ext === "xlsx") return "xlsx";
+  if (type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" || type === "application/vnd.ms-excel" || ["xlsx", "xls"].includes(ext)) return "xlsx";
   return "binary";
 }
 
@@ -108,59 +120,266 @@ function loadScript(src) {
   });
 }
 
+// ── Icon helper ───────────────────────────────────────────────────────────────
+
+function getFileIconSvg(kind) {
+  if (kind === "pdf") {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`;
+  }
+  if (kind === "image") {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+  }
+  if (kind === "video") {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>`;
+  }
+  if (kind === "audio") {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
+  }
+  if (kind === "docx" || kind === "xlsx") {
+    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M8 13h8"/><path d="M8 17h8"/></svg>`;
+  }
+  return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>`;
+}
+
+// ── Footer Navigation & Pagination ───────────────────────────────────────────
+
+let pdfDocState = null;
+let currentPdfPage = 1;
+let currentPdfRenderTask = null;
+
+let xlsxWorkbookState = null;
+let currentXlsxSheetIndex = 0;
+
+function updateFooterNavigation(current, total, typeLabel = "Page", customName = null) {
+  const footer = document.getElementById("import-preview-footer");
+  const indicator = document.getElementById("preview-page-indicator");
+  const prevBtn = document.getElementById("preview-prev-btn");
+  const nextBtn = document.getElementById("preview-next-btn");
+
+  if (!footer || !indicator || !prevBtn || !nextBtn) return;
+
+  if (total <= 1) {
+    footer.classList.add("hidden");
+    return;
+  }
+
+  footer.classList.remove("hidden");
+  const nameStr = customName ? ` (${customName})` : "";
+  indicator.textContent = `${typeLabel} ${current} of ${total}${nameStr}`;
+  prevBtn.disabled = current <= 1;
+  nextBtn.disabled = current >= total;
+}
+
+function hideFooterNavigation() {
+  const footer = document.getElementById("import-preview-footer");
+  if (footer) footer.classList.add("hidden");
+}
+
+function toggleFullscreenMode(forceState) {
+  if (!previewPanel) return;
+  const isCurrentlyFullscreen = previewPanel.classList.contains("is-fullscreen");
+  const targetFullscreen = typeof forceState === "boolean"
+    ? forceState
+    : !isCurrentlyFullscreen;
+
+  if (targetFullscreen) {
+    previewPanel.classList.add("is-fullscreen");
+  } else {
+    previewPanel.classList.remove("is-fullscreen");
+  }
+
+  const expandIcon = document.querySelector("#preview-fullscreen-btn .icon-expand");
+  const compressIcon = document.querySelector("#preview-fullscreen-btn .icon-compress");
+  if (expandIcon && compressIcon) {
+    expandIcon.classList.toggle("hidden", targetFullscreen);
+    compressIcon.classList.toggle("hidden", !targetFullscreen);
+  }
+
+  if (pdfDocState) {
+    setTimeout(() => renderPdfPage(currentPdfPage), 60);
+  }
+}
+
+function initPreviewControls() {
+  const prevBtn = document.getElementById("preview-prev-btn");
+  const nextBtn = document.getElementById("preview-next-btn");
+  const fullscreenBtn = document.getElementById("preview-fullscreen-btn");
+
+  prevBtn?.addEventListener("click", () => {
+    if (pdfDocState && currentPdfPage > 1) {
+      currentPdfPage--;
+      renderPdfPage(currentPdfPage);
+    } else if (xlsxWorkbookState && currentXlsxSheetIndex > 0) {
+      currentXlsxSheetIndex--;
+      renderXlsxSheet(currentXlsxSheetIndex);
+    }
+  });
+
+  nextBtn?.addEventListener("click", () => {
+    if (pdfDocState && currentPdfPage < pdfDocState.numPages) {
+      currentPdfPage++;
+      renderPdfPage(currentPdfPage);
+    } else if (xlsxWorkbookState && currentXlsxSheetIndex < xlsxWorkbookState.SheetNames.length - 1) {
+      currentXlsxSheetIndex++;
+      renderXlsxSheet(currentXlsxSheetIndex);
+    }
+  });
+
+  fullscreenBtn?.addEventListener("click", () => toggleFullscreenMode());
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && previewPanel?.classList.contains("is-fullscreen")) {
+      toggleFullscreenMode(false);
+    }
+  });
+}
+
+initPreviewControls();
+
+// ── Header Setup ─────────────────────────────────────────────────────────────
+
+function setupPreviewHeader(filename, sizeBytes, contentType, downloadUrl = null, localFile = null) {
+  if (!previewTitle || !previewMeta) return;
+
+  const kind = inferPreviewKind(localFile, contentType);
+  const iconContainer = document.getElementById("import-preview-icon");
+  if (iconContainer) {
+    iconContainer.innerHTML = getFileIconSvg(kind);
+  }
+
+  previewTitle.textContent = filename || "Preview";
+
+  const size = typeof sizeBytes === "number" && sizeBytes > 0 ? `${Math.round(sizeBytes / 1024)} KB` : "";
+  const metaParts = [size, contentType || "application/octet-stream"].filter(Boolean);
+  previewMeta.textContent = metaParts.join(" · ");
+
+  const downloadBtn = document.getElementById("preview-download-btn");
+  if (downloadBtn) {
+    if (downloadUrl) {
+      downloadBtn.href = downloadUrl;
+      downloadBtn.removeAttribute("download");
+      downloadBtn.style.display = "inline-flex";
+    } else if (localFile) {
+      downloadBtn.href = URL.createObjectURL(localFile);
+      downloadBtn.setAttribute("download", localFile.name);
+      downloadBtn.style.display = "inline-flex";
+    } else {
+      downloadBtn.style.display = "none";
+    }
+  }
+}
+
 // ── Render helpers ────────────────────────────────────────────────────────────
 
-async function renderPdfPreview(sourceUrl, container) {
+async function renderPdfPage(pageNumber) {
+  if (!pdfDocState || !previewBody) return;
+
+  if (currentPdfRenderTask) {
+    try { currentPdfRenderTask.cancel(); } catch (_) {}
+  }
+
+  const page = await pdfDocState.getPage(pageNumber);
+
+  const containerWidth = Math.min(previewBody.clientWidth - 48, 760);
+  const unscaledViewport = page.getViewport({ scale: 1.0 });
+  const scale = containerWidth > 0 ? (containerWidth / unscaledViewport.width) : 1.2;
+  const viewport = page.getViewport({ scale: Math.max(scale, 0.8) });
+
+  let wrapper = previewBody.querySelector(".import-preview-pdf");
+  if (!wrapper) {
+    clearPreviewBody();
+    wrapper = document.createElement("div");
+    wrapper.className = "import-preview-pdf";
+    previewBody.appendChild(wrapper);
+  } else {
+    wrapper.innerHTML = "";
+  }
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = viewport.width;
+  canvas.height = viewport.height;
+  wrapper.appendChild(canvas);
+
+  currentPdfRenderTask = page.render({ canvasContext: ctx, viewport });
+  await currentPdfRenderTask.promise;
+
+  updateFooterNavigation(pageNumber, pdfDocState.numPages, "Page");
+}
+
+async function renderPdfPreview(sourceUrl) {
+  pdfDocState = null;
+  currentPdfPage = 1;
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
   const pdfjsLib = window.pdfjsLib;
   if (!pdfjsLib) throw new Error("PDF.js failed to load");
   pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-  const pdf = await pdfjsLib.getDocument(sourceUrl).promise;
-  const wrapper = document.createElement("div");
-  wrapper.className = "import-preview-pdf";
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page = await pdf.getPage(p);
-    const viewport = page.getViewport({ scale: 1.1 });
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    canvas.width  = viewport.width;
-    canvas.height = viewport.height;
-    await page.render({ canvasContext: ctx, viewport }).promise;
-    wrapper.appendChild(canvas);
-  }
-  container.appendChild(wrapper);
+
+  pdfDocState = await pdfjsLib.getDocument(sourceUrl).promise;
+  await renderPdfPage(1);
 }
 
-async function renderDocxPreview(file, container) {
+async function renderDocxPreview(sourceUrlOrFile) {
+  hideFooterNavigation();
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js");
-  const arrayBuffer = await file.arrayBuffer();
+  let arrayBuffer;
+  if (sourceUrlOrFile instanceof File || sourceUrlOrFile instanceof Blob) {
+    arrayBuffer = await sourceUrlOrFile.arrayBuffer();
+  } else {
+    const resp = await fetch(sourceUrlOrFile);
+    arrayBuffer = await resp.arrayBuffer();
+  }
+
   const result = await window.mammoth.convertToHtml({ arrayBuffer });
+  clearPreviewBody();
   const wrapper = document.createElement("div");
   wrapper.className = "import-preview-docx";
   wrapper.innerHTML = result.value;
-  container.appendChild(wrapper);
+  previewBody.appendChild(wrapper);
 }
 
-async function renderXlsxPreview(file, container) {
-  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.3/xlsx.full.min.js");
-  const arrayBuffer = await file.arrayBuffer();
-  const workbook = window.XLSX.read(arrayBuffer, { type: "array" });
-  const firstSheet = workbook.SheetNames[0];
-  const html = window.XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet], { editable: false });
+function renderXlsxSheet(sheetIndex) {
+  if (!xlsxWorkbookState || !previewBody) return;
+  const sheetName = xlsxWorkbookState.SheetNames[sheetIndex];
+  if (!sheetName) return;
+
+  const html = window.XLSX.utils.sheet_to_html(xlsxWorkbookState.Sheets[sheetName], { editable: false });
+  clearPreviewBody();
   const wrapper = document.createElement("div");
   wrapper.className = "import-preview-xlsx";
   wrapper.innerHTML = html;
-  container.appendChild(wrapper);
+  previewBody.appendChild(wrapper);
+
+  currentXlsxSheetIndex = sheetIndex;
+  updateFooterNavigation(sheetIndex + 1, xlsxWorkbookState.SheetNames.length, "Sheet", sheetName);
 }
 
-// Renders a locally-selected binary file into the existing preview panel on the page.
-// No upload or share call is made here.
+async function renderXlsxPreview(sourceUrlOrFile) {
+  xlsxWorkbookState = null;
+  currentXlsxSheetIndex = 0;
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.3/xlsx.full.min.js");
+  let arrayBuffer;
+  if (sourceUrlOrFile instanceof File || sourceUrlOrFile instanceof Blob) {
+    arrayBuffer = await sourceUrlOrFile.arrayBuffer();
+  } else {
+    const resp = await fetch(sourceUrlOrFile);
+    arrayBuffer = await resp.arrayBuffer();
+  }
+
+  xlsxWorkbookState = window.XLSX.read(arrayBuffer, { type: "array" });
+  renderXlsxSheet(0);
+}
+
+// Renders a locally-selected binary file into the preview panel.
 async function renderBinaryFileLocally(file) {
   if (!previewPanel || !previewTitle || !previewMeta || !previewBody) return;
+  pdfDocState = null;
+  xlsxWorkbookState = null;
+
   const kind = inferPreviewKind(file);
-  previewTitle.textContent = file.name || "Preview";
-  previewMeta.textContent  = formatPreviewMeta(file.name, file.size, file.type);
+  setupPreviewHeader(file.name, file.size, file.type, null, file);
   clearPreviewBody();
+  hideFooterNavigation();
   setPreviewVisible(true);
 
   try {
@@ -180,15 +399,15 @@ async function renderBinaryFileLocally(file) {
       return;
     }
     if (kind === "pdf") {
-      await renderPdfPreview(URL.createObjectURL(file), previewBody);
+      await renderPdfPreview(URL.createObjectURL(file));
       return;
     }
     if (kind === "docx") {
-      await renderDocxPreview(file, previewBody);
+      await renderDocxPreview(file);
       return;
     }
     if (kind === "xlsx") {
-      await renderXlsxPreview(file, previewBody);
+      await renderXlsxPreview(file);
       return;
     }
     previewBody.innerHTML = '<div class="import-preview-empty">Preview is not available for this file type.</div>';
@@ -200,12 +419,15 @@ async function renderBinaryFileLocally(file) {
 // Renders a remotely-served shared file (preview_mode === 'share') into the preview panel.
 async function renderPreviewForSharedFile({ url, contentType, filename, sizeBytes, text }) {
   if (!previewPanel || !previewTitle || !previewMeta || !previewBody) return;
-  previewTitle.textContent = filename || "Preview";
-  previewMeta.textContent  = formatPreviewMeta(filename, sizeBytes, contentType);
-  setPreviewVisible(true);
-  clearPreviewBody();
+  pdfDocState = null;
+  xlsxWorkbookState = null;
 
   const kind = inferPreviewKind(null, contentType);
+  setupPreviewHeader(filename, sizeBytes, contentType, url, null);
+  setPreviewVisible(true);
+  clearPreviewBody();
+  hideFooterNavigation();
+
   try {
     if (kind === "text") {
       const pre = document.createElement("pre");
@@ -227,38 +449,56 @@ async function renderPreviewForSharedFile({ url, contentType, filename, sizeByte
       previewBody.appendChild(video);
       return;
     }
+    if (kind === "audio") {
+      renderAudioPlayer(url, filename);
+      return;
+    }
     if (kind === "pdf") {
-      await renderPdfPreview(url, previewBody);
+      await renderPdfPreview(url);
       return;
     }
     if (kind === "docx") {
-      const resp = await fetch(url);
-      const ab   = await resp.arrayBuffer();
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.8.0/mammoth.browser.min.js");
-      const result  = await window.mammoth.convertToHtml({ arrayBuffer: ab });
-      const wrapper = document.createElement("div");
-      wrapper.className = "import-preview-docx";
-      wrapper.innerHTML = result.value;
-      previewBody.appendChild(wrapper);
+      await renderDocxPreview(url);
       return;
     }
     if (kind === "xlsx") {
-      const resp = await fetch(url);
-      const ab   = await resp.arrayBuffer();
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.3/xlsx.full.min.js");
-      const workbook   = window.XLSX.read(ab, { type: "array" });
-      const firstSheet = workbook.SheetNames[0];
-      const html       = window.XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet], { editable: false });
-      const wrapper    = document.createElement("div");
-      wrapper.className = "import-preview-xlsx";
-      wrapper.innerHTML = html;
-      previewBody.appendChild(wrapper);
+      await renderXlsxPreview(url);
       return;
     }
     previewBody.innerHTML = '<div class="import-preview-empty">Preview is not available for this file type yet. Download it instead.</div>';
   } catch (err) {
     previewBody.innerHTML = '<div class="import-preview-empty">Preview could not be generated for this file.</div>';
   }
+}
+
+// ── Audio player helper ───────────────────────────────────────────────────────
+function renderAudioPlayer(url, filename) {
+  previewBody.classList.add("audio-preview-body");
+  const wrapper = document.createElement("div");
+  wrapper.className = "audio-player-wrapper";
+
+  const nameEl = document.createElement("div");
+  nameEl.className = "audio-player-title";
+  nameEl.textContent = filename || "Audio";
+
+  const iconEl = document.createElement("div");
+  iconEl.className = "audio-player-icon";
+  iconEl.innerHTML = `<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" stroke-opacity="0.2"/>
+    <path d="M18 16v7.5M22 14v11.5M26 18v7.5M30 14v11.5M34 16v7.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M18 31v1M22 29v3M26 31v1M30 29v3M34 31v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  </svg>`;
+
+  const audio = document.createElement("audio");
+  audio.src = url;
+  audio.controls = true;
+  audio.className = "audio-player-el";
+  audio.preload = "metadata";
+
+  wrapper.appendChild(iconEl);
+  wrapper.appendChild(nameEl);
+  wrapper.appendChild(audio);
+  previewBody.appendChild(wrapper);
 }
 
 // ── Modal open / close ────────────────────────────────────────────────────────
@@ -361,9 +601,6 @@ form?.addEventListener("submit", async (event) => {
   }
 
   // --- Text / code path ---
-  // If the extension is a recognized text/code type, read locally and inject
-  // directly into the editor via sessionStorage → /editor redirect.
-  // No upload, no share call.
   const textValidation = validateImportedTextFile(file);
   if (textValidation.ok) {
     submitButton.disabled = true;
@@ -380,17 +617,51 @@ form?.addEventListener("submit", async (event) => {
     return;
   }
 
+  if (textValidation.error) {
+    setStatus(textValidation.error, true);
+    return;
+  }
+
   // --- Binary / non-text path ---
-  // Render locally into the existing full-screen preview panel on the page.
-  // No upload, no share/save call at this stage.
-  // User can share afterward using the Share button that appears in the navbar
-  // when the preview panel is visible.
+  const ext = normalizeExt(file.name);
+  if (["zip", "rar", "7z"].includes(ext)) {
+    setStatus("Unsupported file type. ZIP files are not supported.", true);
+    return;
+  }
+
+  const BINARY_RULES = {
+    image: { exts: new Set(["png", "jpg", "jpeg", "gif", "webp", "svg"]), maxBytes: 500 * 1024 },
+    doc: { exts: new Set(["pdf", "docx", "xlsx", "xls"]), maxBytes: 500 * 1024 },
+    video: { exts: new Set(["mp4", "webm", "ogg"]), maxBytes: 5 * 1024 * 1024 },
+  };
+
+  let matchedCategory = null;
+  for (const rule of Object.values(BINARY_RULES)) {
+    if (rule.exts.has(ext)) {
+      matchedCategory = rule;
+      break;
+    }
+  }
+
+  if (!matchedCategory) {
+    setStatus("Unsupported file type. Only text/code files, images, documents, and video files are supported.", true);
+    return;
+  }
+
+  if (typeof file.size === "number" && file.size > matchedCategory.maxBytes) {
+    const limitKb = Math.round(matchedCategory.maxBytes / 1024);
+    const limitMb = Math.round(matchedCategory.maxBytes / (1024 * 1024));
+    const limitStr = limitMb >= 1 ? `${limitMb}MB` : `${limitKb}KB`;
+    setStatus(`File is too large. Maximum allowed size is ${limitStr}.`, true);
+    return;
+  }
+
   closeImportModal();
+  document.getElementById("import-hero-card")?.classList.add("hidden");
   setStatus("Rendering preview…");
   try {
     await renderBinaryFileLocally(file);
     setStatus("");
-    // Reveal the Share + Download navbar actions
     showFilePreviewNavActions(file);
   } catch (err) {
     setStatus("Preview failed: " + (err.message || "unknown error"), true);
@@ -402,23 +673,281 @@ form?.addEventListener("submit", async (event) => {
 // preview_mode === 'share'. For a local preview, we inject them dynamically
 // so the user can upload and share if they want to.
 
+// ── Local Unsaved Preview State & Navigation Safeguards ───────────────────────
+
+let currentLocalFile = null;
+let isLocalUnsavedPreview = false;
+
+window.addEventListener("beforeunload", (e) => {
+  if (isLocalUnsavedPreview) {
+    e.preventDefault();
+    e.returnValue = "Unsaved File Preview: Your file will be lost if you leave without sharing.";
+    return e.returnValue;
+  }
+});
+
 function showFilePreviewNavActions(file) {
-  // Nothing to do here — the existing share flow is on the editor page for
-  // text files; for binary files the user can decide whether to upload later.
-  // We intentionally do NOT call any save/share endpoint here.
+  currentLocalFile = file;
+  isLocalUnsavedPreview = true;
+
+  const shareBtn = document.getElementById("file-share-btn");
+  const downloadBtn = document.getElementById("file-download-btn");
+  const importNewBtn = document.getElementById("file-import-new-btn");
+
+  if (shareBtn) shareBtn.classList.remove("hidden");
+  if (downloadBtn) {
+    downloadBtn.classList.remove("hidden");
+    downloadBtn.href = URL.createObjectURL(file);
+    downloadBtn.download = file.name || "download";
+  }
+  if (importNewBtn) importNewBtn.classList.remove("hidden");
 }
 
-// ── Share-link copy (navbar Share button, visible in share-preview mode) ──────
+// ── "Import New" Button with Unsaved Warning ─────────────────────────────────
 
-const shareBtn = document.getElementById("file-share-btn");
-if (shareBtn) {
-  shareBtn.addEventListener("click", async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      showToast("Link copied to clipboard!");
-    } catch (err) {
-      alert("Failed to copy link.");
+const importNewBtn = document.getElementById("file-import-new-btn");
+const unsavedModal = document.getElementById("unsaved-modal");
+const unsavedCancelBtn = document.getElementById("unsaved-cancel-btn");
+const unsavedConfirmBtn = document.getElementById("unsaved-confirm-btn");
+
+if (importNewBtn) {
+  importNewBtn.addEventListener("click", () => {
+    if (isLocalUnsavedPreview) {
+      unsavedModal?.classList.remove("hidden");
+    } else {
+      window.location.href = "/import";
     }
+  });
+}
+
+if (unsavedCancelBtn) {
+  unsavedCancelBtn.addEventListener("click", () => {
+    unsavedModal?.classList.add("hidden");
+  });
+}
+
+if (unsavedConfirmBtn) {
+  unsavedConfirmBtn.addEventListener("click", () => {
+    isLocalUnsavedPreview = false;
+    currentLocalFile = null;
+    unsavedModal?.classList.add("hidden");
+    window.location.href = "/import";
+  });
+}
+
+// ── Share Modal & Custom Slug Logic ───────────────────────────────────────────
+
+const shareModal = document.getElementById("share-modal");
+const fileShareBtn = document.getElementById("file-share-btn");
+const modalCloseBtn = document.getElementById("modalCloseBtn");
+const cancelShare = document.getElementById("cancelShare");
+const createShare = document.getElementById("createShare");
+
+const optionRandom = document.getElementById("optionRandom");
+const optionCustom = document.getElementById("optionCustom");
+const customUrlSection = document.getElementById("customUrlSection");
+const customCode = document.getElementById("customCode");
+const charCounter = document.getElementById("charCounter");
+const urlInputWrap = document.getElementById("urlInputWrap");
+const validationIcon = document.getElementById("validationIcon");
+const urlHelper = document.getElementById("urlHelper");
+
+let selectedOption = "random";
+
+function selectOption(option) {
+  selectedOption = option;
+  if (!optionRandom || !optionCustom) return;
+  if (option === "random") {
+    optionRandom.classList.add("selected");
+    optionCustom.classList.remove("selected");
+    customUrlSection?.classList.remove("open");
+  } else {
+    optionCustom.classList.add("selected");
+    optionRandom.classList.remove("selected");
+    customUrlSection?.classList.add("open");
+    setTimeout(() => customCode?.focus(), 80);
+  }
+}
+
+if (optionRandom) optionRandom.addEventListener("click", () => selectOption("random"));
+if (optionCustom) optionCustom.addEventListener("click", () => selectOption("custom"));
+
+function resetModalUI() {
+  selectOption("random");
+  if (customCode) customCode.value = "";
+  if (charCounter) {
+    charCounter.textContent = "0/30";
+    charCounter.classList.remove("warn", "over");
+  }
+  if (urlInputWrap) urlInputWrap.classList.remove("valid", "invalid");
+  if (validationIcon) {
+    validationIcon.textContent = "";
+    validationIcon.classList.remove("show", "ok", "err");
+  }
+  if (urlHelper) {
+    urlHelper.textContent = "Letters, numbers and hyphens only";
+    urlHelper.classList.remove("error-msg", "ok-msg");
+  }
+  if (createShare) {
+    createShare.disabled = false;
+    createShare.innerHTML = "create link →";
+  }
+}
+
+const VALID_SLUG = /^[a-zA-Z0-9-]+$/;
+
+function validateCustomInput(value) {
+  if (!charCounter || !urlInputWrap || !validationIcon || !urlHelper) return;
+  const len = value.length;
+  charCounter.textContent = `${len}/30`;
+  charCounter.classList.toggle("warn", len >= 22 && len < 28);
+  charCounter.classList.toggle("over", len >= 28);
+
+  if (len === 0) {
+    urlInputWrap.classList.remove("valid", "invalid");
+    validationIcon.classList.remove("show", "ok", "err");
+    validationIcon.textContent = "";
+    urlHelper.textContent = "Letters, numbers and hyphens only";
+    urlHelper.classList.remove("error-msg", "ok-msg");
+    return;
+  }
+
+  const ok = VALID_SLUG.test(value);
+  urlInputWrap.classList.toggle("valid", ok);
+  urlInputWrap.classList.toggle("invalid", !ok);
+  validationIcon.textContent = ok ? "✓" : "✗";
+  validationIcon.classList.toggle("ok", ok);
+  validationIcon.classList.toggle("err", !ok);
+  validationIcon.classList.add("show");
+  urlHelper.textContent = ok ? "Looks good!" : "Only letters, numbers and hyphens allowed";
+  urlHelper.classList.toggle("ok-msg", ok);
+  urlHelper.classList.toggle("error-msg", !ok);
+}
+
+if (customCode) {
+  customCode.addEventListener("input", () => validateCustomInput(customCode.value));
+}
+
+if (fileShareBtn) {
+  fileShareBtn.addEventListener("click", () => {
+    if (shareModal) {
+      shareModal.classList.add("show");
+      resetModalUI();
+    }
+  });
+}
+
+function closeShareModal() {
+  shareModal?.classList.remove("show");
+}
+
+if (modalCloseBtn) modalCloseBtn.addEventListener("click", closeShareModal);
+if (cancelShare) cancelShare.addEventListener("click", closeShareModal);
+if (shareModal) {
+  shareModal.addEventListener("click", (e) => {
+    if (e.target === shareModal) closeShareModal();
+  });
+}
+
+if (createShare) {
+  createShare.addEventListener("click", async () => {
+    if (!currentLocalFile) {
+      showToast("No local file selected to share.");
+      return;
+    }
+
+    const custom = selectedOption === "custom" ? (customCode?.value || "").trim() : "";
+    if (selectedOption === "custom") {
+      if (!custom) {
+        if (urlHelper) {
+          urlHelper.textContent = "Please enter a custom slug";
+          urlHelper.classList.add("error-msg");
+        }
+        return;
+      }
+      if (!VALID_SLUG.test(custom)) {
+        if (urlHelper) {
+          urlHelper.textContent = "Only letters, numbers and hyphens allowed";
+          urlHelper.classList.add("error-msg");
+        }
+        return;
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("file", currentLocalFile);
+    if (custom) {
+      formData.append("custom_code", custom);
+    }
+
+    const titleEl = document.getElementById("snippetTitle");
+    const passwordEl = document.getElementById("snippetPassword");
+    const expiryEl = document.getElementById("expiryDays");
+
+    if (titleEl) {
+      const titleVal = titleEl.value.trim();
+      if (!titleVal) {
+        showError("Please enter a file title.");
+        return;
+      }
+      formData.append("title", titleVal);
+    }
+
+    if (passwordEl && passwordEl.value) {
+      formData.append("password", passwordEl.value);
+    }
+    if (expiryEl && expiryEl.value) {
+      formData.append("expires_in_days", expiryEl.value);
+    }
+
+    createShare.disabled = true;
+    createShare.innerHTML = '<span class="btn-spinner"></span>creating link…';
+
+    const performUpload = async () => {
+      createShare.disabled = true;
+      createShare.innerHTML = '<span class="btn-spinner"></span>creating link…';
+
+      try {
+        const response = await fetch("/api/files/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          createShare.disabled = false;
+          createShare.innerHTML = "create link →";
+          const errDetail = data.detail || { status: response.status };
+          if (urlHelper && selectedOption === "custom" && typeof errDetail === "string") {
+            urlHelper.textContent = errDetail;
+            urlHelper.classList.add("error-msg");
+          } else {
+            showError(errDetail, { retryFn: performUpload });
+          }
+          return;
+        }
+
+        isLocalUnsavedPreview = false;
+        closeShareModal();
+        history.pushState({}, "", data.url);
+
+        if (fileShareBtn) fileShareBtn.classList.add("hidden");
+        const downloadBtn = document.getElementById("file-download-btn");
+        if (downloadBtn) {
+          downloadBtn.href = `/api/files/${data.file_id}`;
+          downloadBtn.removeAttribute("download");
+        }
+
+        showToast("File shared successfully!");
+        navigator.clipboard.writeText(window.location.origin + data.url).catch(() => {});
+      } catch (err) {
+        createShare.disabled = false;
+        createShare.innerHTML = "create link →";
+        showError(err, { retryFn: performUpload });
+      }
+    };
+
+    await performUpload();
   });
 }
 
@@ -429,5 +958,5 @@ function showToast(message) {
   if (!toast) return;
   toast.textContent = message;
   toast.classList.add("show");
-  setTimeout(() => toast.classList.remove("show"), 2000);
+  setTimeout(() => toast.classList.remove("show"), 2500);
 }

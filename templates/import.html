@@ -4,47 +4,89 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CodeAlive — Import File</title>
-    <link rel="stylesheet" href="/static/css/theme.css?v=1.1" />
-    <link rel="stylesheet" href="/static/css/style.css?v=1.1" />
-    <link rel="stylesheet" href="/static/css/home.css?v=1.1" />
-    {% if preview_mode == 'share' %}
-      <link rel="stylesheet" href="/static/css/file-viewer.css?v=1.1" />
-    {% endif %}
+    <link rel="stylesheet" href="/static/css/theme.css?v=1.3" />
+    <link rel="stylesheet" href="/static/css/style.css?v=1.3" />
+    <link rel="stylesheet" href="/static/css/home.css?v=1.3" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
   </head>
   <body class="import-layout">
     <header id="topbar">
-      <div class="logo">Code<span>Alive</span></div>
+      <a href="/" class="logo" style="text-decoration: none;">Code<span>Alive</span></a>
       <div class="bar-right">
         {% if preview_mode == 'share' %}
-          <button id="file-share-btn" class="btn btn-ghost">Share</button>
           <a id="file-download-btn" href="{{ download_url }}" class="btn btn-ghost" style="text-decoration: none;">Download</a>
           <a href="/import" class="btn btn-accent" style="text-decoration: none;">Import New</a>
         {% else %}
-          {% if user_id %}
-            <a href="/workspace" class="btn btn-ghost" style="text-decoration: none;">workspace</a>
-            <a href="/profile" class="nav-avatar-sm" id="importAvatar">{{ user_email[0].upper() if user_email else 'U' }}</a>
-          {% else %}
-            <a href="/login" class="btn btn-ghost" style="text-decoration: none;">login</a>
-            <a href="/signup" class="btn btn-ghost" style="text-decoration: none;">signup</a>
-          {% endif %}
-          <a href="/editor" class="btn btn-accent" style="text-decoration: none;">open editor</a>
+          <button id="file-share-btn" class="btn btn-accent hidden">Share</button>
+          <a id="file-download-btn" href="#" class="btn btn-ghost hidden" style="text-decoration: none;">Download</a>
+          <button id="file-import-new-btn" type="button" class="btn btn-ghost hidden" style="text-decoration: none;">Import New</button>
         {% endif %}
+
+        {% if user_id %}
+          <a href="/workspace" class="btn btn-ghost" style="text-decoration: none;">Workspace</a>
+          <a href="/profile" class="nav-avatar-sm" id="importAvatar">{{ user_email[0].upper() if user_email else 'U' }}</a>
+        {% else %}
+          <a href="/login?next={{ request.url.path }}" class="btn btn-ghost" style="text-decoration: none;">Login</a>
+          <a href="/signup?next={{ request.url.path }}" class="btn btn-ghost" style="text-decoration: none;">Signup</a>
+        {% endif %}
+        <a href="/editor" class="btn btn-accent" style="text-decoration: none;">Open editor</a>
       </div>
     </header>
 
     <main class="import-page-shell">
-      {% if preview_mode == 'share' %}
-        <div id="import-preview" class="import-preview">
-          <div class="import-preview-header">
-            <strong id="import-preview-title">Preview</strong>
-            <span id="import-preview-meta"></span>
+      <div id="import-preview" class="import-preview {% if preview_mode != 'share' %}hidden{% endif %}">
+        <div class="import-preview-header">
+          <div class="preview-header-left">
+            <div class="preview-file-icon" id="import-preview-icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+            </div>
+            <div class="preview-file-info">
+              <strong id="import-preview-title" class="preview-title">Preview</strong>
+              <span id="import-preview-meta" class="preview-meta"></span>
+            </div>
           </div>
-          <div id="import-preview-body" class="import-preview-body"></div>
+          <div class="preview-header-actions">
+            <a id="preview-download-btn" href="#" class="preview-btn" title="Download file" style="display: none;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+            </a>
+            <button id="preview-fullscreen-btn" type="button" class="preview-btn" title="Toggle Fullscreen">
+              <svg class="icon-expand" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 3 21 3 21 9"/>
+                <polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/>
+                <line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+              <svg class="icon-compress hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 14 10 14 10 20"/>
+                <polyline points="20 10 14 10 14 4"/>
+                <line x1="14" y1="10" x2="21" y2="3"/>
+                <line x1="10" y1="14" x2="3" y2="21"/>
+              </svg>
+            </button>
+          </div>
         </div>
-      {% else %}
-        <section class="import-hero-card">
+        <div id="import-preview-body" class="import-preview-body"></div>
+        <div id="import-preview-footer" class="import-preview-footer hidden">
+          <button id="preview-prev-btn" class="footer-nav-btn" aria-label="Previous page">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span id="preview-page-indicator" class="footer-page-indicator">Page 1 of 1</span>
+          <button id="preview-next-btn" class="footer-nav-btn" aria-label="Next page">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+      {% if preview_mode != 'share' %}
+        <section id="import-hero-card" class="import-hero-card">
           <div class="import-badge">
             <span class="import-badge-dot"></span>
             Import file
@@ -91,7 +133,7 @@
 
           <div class="import-info-row">
             <div class="supported-formats">
-              Supported formats: .txt, .md, .json, .csv, .xml, .yaml, .py, .js, .ts, .css, .html, .pdf, .docx, .xlsx, .png, .jpg, .svg, .mp4
+              Supported formats: .txt, .md, .json, .csv, .xml, .yaml, .py, .js, .ts, .css, .html, .pdf, .docx, .xlsx, .xls, .png, .jpg, .svg, .mp4
             </div>
             <div class="max-size">
               Maximum size: 5MB
@@ -105,18 +147,142 @@
       </div>
     </div>
 
+    <!-- FILE SHARE MODAL -->
+    <div id="share-modal">
+      <div class="modal-box">
+        <div class="modal-stripe"></div>
+        <div class="modal-inner">
+          <div class="modal-header">
+            <div class="modal-title-group">
+              <div class="modal-icon">📁</div>
+              <span class="modal-title">Share your file</span>
+            </div>
+            <button class="modal-close" id="modalCloseBtn" aria-label="Close">×</button>
+          </div>
+
+          <div class="modal-divider"></div>
+
+          <p class="modal-subtitle">
+            Anyone with the link can view or download this file. Choose how you'd like your URL to look.
+          </p>
+
+          {% if user_id %}
+          <div id="titleSection">
+            <div class="input-group">
+              <label for="snippetTitle">File Title <span style="color: var(--error)">*</span></label>
+              <input type="text" id="snippetTitle" placeholder="Give your file a title..." maxlength="50" required />
+            </div>
+          </div>
+          <div class="modal-divider"></div>
+          {% endif %}
+
+          <div class="option-cards">
+            <div class="option-card selected" id="optionRandom">
+              <div class="option-radio">
+                <div class="option-radio-dot"></div>
+              </div>
+              <div class="option-text">
+                <div class="option-title">Continue with random URL</div>
+                <div class="option-desc">We'll generate a short, unique link automatically.</div>
+              </div>
+              <span class="option-badge badge-green">Quick</span>
+            </div>
+
+            <div class="option-card" id="optionCustom">
+              <div class="option-radio">
+                <div class="option-radio-dot"></div>
+              </div>
+              <div class="option-text">
+                <div class="option-title">Use a custom URL</div>
+                <div class="option-desc">
+                  Pick your own slug — e.g. <span style="color: var(--accent)">codealive.onrender.com/f/my-file</span>
+                </div>
+              </div>
+              <span class="option-badge badge-muted">Custom</span>
+            </div>
+          </div>
+
+          {% if user_id %}
+          <div class="modal-divider"></div>
+          <div id="advancedOptions">
+            <div class="option-row">
+              <div class="input-group">
+                <label for="snippetPassword">Password Protection (Optional)</label>
+                <input type="password" id="snippetPassword" placeholder="Set a password..." />
+              </div>
+              <div class="input-group">
+                <label for="expiryDays">Expiry (1-90 days)</label>
+                <select id="expiryDays">
+                  <option value="1">1 Day</option>
+                  <option value="7">7 Days</option>
+                  <option value="30" selected>30 Days</option>
+                  <option value="60">60 Days</option>
+                  <option value="90">90 Days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          {% endif %}
+
+          <div id="customUrlSection">
+            <div class="url-label-row">
+              <label class="url-label" for="customCode">Your custom slug</label>
+              <span id="charCounter">0/30</span>
+            </div>
+            <div class="url-input-wrap" id="urlInputWrap">
+              <div class="url-prefix">codealive.onrender.com/f/</div>
+              <input
+                id="customCode"
+                type="text"
+                maxlength="30"
+                placeholder="my-file"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <span class="url-validation-icon" id="validationIcon"></span>
+            </div>
+            <p class="url-helper" id="urlHelper">Letters, numbers and hyphens only</p>
+          </div>
+
+          <div class="modal-actions">
+            <button class="btn btn-ghost" id="cancelShare">Cancel</button>
+            <button class="btn btn-accent" id="createShare">create link →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- UNSAVED PREVIEW WARNING MODAL -->
+    <div id="unsaved-modal" class="import-modal-overlay hidden" aria-hidden="true">
+      <div class="import-modal" role="dialog" aria-modal="true" style="max-width: 440px;">
+        <div class="import-modal-header">
+          <div class="import-badge" style="background: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.3); color: #f87171;">
+            <span class="import-badge-dot" style="background: #ef4444;"></span>
+            Unsaved File
+          </div>
+          <h2>Discard current preview?</h2>
+          <p style="margin-top: 8px;">Your current file preview is not saved on the server. Share the file first if you want to preserve its link.</p>
+        </div>
+        <div class="import-modal-footer" style="gap: 12px; justify-content: flex-end; margin-top: 20px;">
+          <button id="unsaved-cancel-btn" type="button" class="btn btn-ghost">Cancel</button>
+          <button id="unsaved-confirm-btn" type="button" class="btn btn-accent" style="background: #dc2626; border-color: #ef4444;">Discard & Import New</button>
+        </div>
+      </div>
+    </div>
+
     <!-- TOAST -->
     <div id="toast"></div>
 
-    <script>
-      window.__USER_ID__ = "{{ user_id | default('') }}";
-      window.__PREVIEW_MODE__ = "{{ preview_mode | default('') }}";
-      window.__PREVIEW_URL__ = "{{ preview_url | default('') }}";
-      window.__PREVIEW_TEXT__ = {{ (preview_text or "") | tojson }};
-      window.__PREVIEW_FILENAME__ = {{ (filename or "") | tojson }};
-      window.__PREVIEW_CONTENT_TYPE__ = {{ (content_type or "") | tojson }};
-      window.__PREVIEW_SIZE__ = {{ size_bytes if size_bytes is not none else 0 }};
-    </script>
+    <script
+      id="import-data"
+      data-user-id="{{ user_id | default('') }}"
+      data-preview-mode="{{ preview_mode | default('') }}"
+      data-preview-url="{{ preview_url | default('') }}"
+      data-preview-filename="{{ filename | default('') }}"
+      data-preview-content-type="{{ content_type | default('') }}"
+      data-preview-size="{{ size_bytes if size_bytes is not none else 0 }}"
+    ></script>
+    <script id="import-preview-text" type="text/plain">{{ (preview_text or '') | safe }}</script>
     <script type="module" src="/static/import.js"></script>
   </body>
 </html>

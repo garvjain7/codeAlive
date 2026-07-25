@@ -19,28 +19,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const identifier = document.getElementById('identifier').value;
             const password = document.getElementById('password').value;
             
-            try {
-                const response = await fetch('/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier, password })
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
-                    showToast("Login successful! Redirecting...", 1000);
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const next = urlParams.get('next') || '/';
-                    setTimeout(() => {
-                        window.location.href = next;
-                    }, 1000);
-                } else {
-                    showError(data.detail || 'Login failed');
+            const attemptLogin = async () => {
+                try {
+                    const response = await fetch('/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ identifier, password })
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast("Login successful! Redirecting...", 1000);
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const next = urlParams.get('next') || '/';
+                        setTimeout(() => {
+                            window.location.href = next;
+                        }, 1000);
+                    } else {
+                        showError(data.detail || { status: response.status });
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showError(err, { retryFn: attemptLogin });
                 }
-            } catch (err) {
-                console.error(err);
-                showError('An unexpected error occurred');
-            }
+            };
+            await attemptLogin();
         });
     }
     
@@ -58,26 +61,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
             
-            try {
-                const response = await fetch('/auth/signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, email, password })
-                });
-                
-                const data = await response.json();
-                if (response.ok) {
-                    showToast("Account created! Please log in.", 2000);
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                } else {
-                    showError(data.detail || 'Signup failed');
+            const attemptSignup = async () => {
+                try {
+                    const response = await fetch('/auth/signup', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, email, password })
+                    });
+                    
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast("Account created! Please log in.", 2000);
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const next = urlParams.get('next');
+                        const loginUrl = next ? `/login?next=${encodeURIComponent(next)}` : '/login';
+                        setTimeout(() => {
+                            window.location.href = loginUrl;
+                        }, 2000);
+                    } else {
+                        showError(data.detail || { status: response.status });
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showError(err, { retryFn: attemptSignup });
                 }
-            } catch (err) {
-                console.error(err);
-                showError('An unexpected error occurred');
-            }
+            };
+            await attemptSignup();
         });
     }
 
@@ -102,26 +111,29 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            try {
-                const response = await fetch('/auth/reset-password', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token, new_password: password })
-                });
+            const attemptReset = async () => {
+                try {
+                    const response = await fetch('/auth/reset-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, new_password: password })
+                    });
 
-                const data = await response.json();
-                if (response.ok) {
-                    showToast('Password reset successful! Redirecting...', 2000);
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                } else {
-                    showError(data.detail || 'Reset failed');
+                    const data = await response.json();
+                    if (response.ok) {
+                        showToast('Password reset successful! Redirecting...', 2000);
+                        setTimeout(() => {
+                            window.location.href = '/login';
+                        }, 2000);
+                    } else {
+                        showError(data.detail || { status: response.status });
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showError(err, { retryFn: attemptReset });
                 }
-            } catch (err) {
-                console.error(err);
-                showError('An unexpected error occurred');
-            }
+            };
+            await attemptReset();
         });
     }
 

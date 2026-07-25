@@ -58,3 +58,27 @@ def test_infer_language_from_filename():
         """
     )
     assert output == "ok"
+
+
+def test_import_html_jinja_rendering():
+    from app import templates
+    import unittest.mock
+    req = unittest.mock.MagicMock()
+    rendered = templates.get_template("import.html").render({
+        "request": req,
+        "user_id": "user123",
+        "preview_mode": "share",
+        "preview_url": "/api/files/abc",
+        "preview_text": 'print("Hello World")',
+        "filename": "hello.py",
+        "content_type": "text/x-python",
+        "size_bytes": 42
+    })
+
+    assert 'id="import-preview"' in rendered
+    assert 'id="import-data"' in rendered
+    assert 'data-user-id="user123"' in rendered
+    assert 'id="import-preview-text"' in rendered
+    assert 'print("Hello World")' in rendered
+
+

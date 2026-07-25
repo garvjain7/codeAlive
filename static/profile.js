@@ -5,6 +5,7 @@
 
 import * as dom from './profile-dom.js';
 import './theme.js';
+import { translateError } from './error-service.js';
 
 // ── INITIALIZATION ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,13 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
 async function fetchProfileData() {
   try {
     const res = await fetch('/api/profile/summary');
-    if (!res.ok) throw new Error('Failed to load profile');
+    if (!res.ok) throw { status: res.status, message: 'Failed to load profile' };
 
     const data = await res.json();
     updateUI(data);
   } catch (err) {
     console.error(err);
-    showToast('Error loading profile data');
+    showToast(translateError(err, 'Error loading profile data'));
   }
 }
 
