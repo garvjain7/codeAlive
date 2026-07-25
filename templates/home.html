@@ -121,14 +121,22 @@
                 <a href="/editor" class="btn-primary btn-large">
                   Open Editor →
                 </a>
+                <a href="/import" class="btn-outline-collab">
+                  Upload a File
+                </a>
                 <a href="/workspace" class="btn-outline-collab" style="border-color: var(--accent-green); color: var(--accent-green);">
                   View Workspace
                 </a>
               </div>
             {% else %}
-              <a href="/editor" class="btn-primary btn-large">
-                Start Coding Now — free
-              </a>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <a href="/editor" class="btn-primary btn-large">
+                  Start Coding Now — free
+                </a>
+                <a href="/import" class="btn-outline-collab">
+                  Upload a File
+                </a>
+              </div>
             {% endif %}
             <a href="/waitlist" class="btn-outline-collab" target="_blank" rel="noopener">
               <span class="collab-live-dot"></span>
@@ -254,6 +262,40 @@
         <span class="tk">Ruby</span><span class="tk-dot">·</span>
       </div>
     </div>
+
+    <!-- ── UPLOAD EXPERIENCE ─────────────────────────────────────── -->
+    <section id="upload-flow" class="section">
+      <div class="section-inner">
+        <div class="section-label">Files</div>
+        <h2 class="section-title">Upload files and share them with the same calm experience.</h2>
+        <div class="upload-panel">
+          <div class="upload-panel-copy">
+            <h3>Bring a file into CodeAlive</h3>
+            <p>Import text files straight into the editor, or upload documents, images, and videos for a polished preview page that feels native to the app.</p>
+            <div class="hero-actions" style="margin-bottom: 0; margin-top: 18px;">
+              <a href="/import" class="btn-primary">Open uploader →</a>
+              <a href="/import" class="btn-outline-collab">Try import flow</a>
+            </div>
+          </div>
+          <div class="upload-panel-surface">
+            <div class="upload-panel-card">
+              <div class="upload-panel-dot"></div>
+              <div>
+                <strong>Upload file</strong>
+                <p>Preview below the header, share instantly, and download from the same view.</p>
+              </div>
+            </div>
+            <div class="upload-panel-card muted">
+              <div class="upload-panel-dot green"></div>
+              <div>
+                <strong>Protect it</strong>
+                <p>Optional password protection, expiry controls, and access-safe sharing.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- ── HOW IT WORKS ─────────────────────────────────────────────── -->
     <section id="how-it-works" class="section">

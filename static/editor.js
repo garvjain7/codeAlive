@@ -9,18 +9,18 @@ import {
   dropCursor,
   rectangularSelection,
   crosshairCursor,
-} from "https://esm.sh/@codemirror/view";
-import { highlightSelectionMatches, search, openSearchPanel } from "https://esm.sh/@codemirror/search";
+} from "@codemirror/view";
+import { highlightSelectionMatches, search, openSearchPanel } from "@codemirror/search";
 import {
   EditorState,
   Compartment,
-} from "https://esm.sh/@codemirror/state";
+} from "@codemirror/state";
 import {
   defaultKeymap,
   history,
   historyKeymap,
   indentWithTab,
-} from "https://esm.sh/@codemirror/commands";
+} from "@codemirror/commands";
 import {
   indentOnInput,
   syntaxHighlighting,
@@ -29,9 +29,9 @@ import {
   foldGutter,
   foldKeymap,
   LanguageDescription,
-} from "https://esm.sh/@codemirror/language";
-import { languages } from "https://esm.sh/@codemirror/language-data";
-import { oneDark } from "https://esm.sh/@codemirror/theme-one-dark";
+} from "@codemirror/language";
+import { languages } from "@codemirror/language-data";
+import { oneDark } from "@codemirror/theme-one-dark";
 
 import { editorContainer, setView, lineInfo, charInfo, editorHintEmpty, editorHintHighlight } from "./dom.js";
 import { handleEditorUpdate, handleImmediateDetection } from "./detection.js";
@@ -43,6 +43,30 @@ const languageConf = new Compartment();
 
 async function getLanguageExtension(langName) {
   if (!langName || langName === "text") return [];
+
+  const normalizedLangName = String(langName).trim().toLowerCase();
+
+  switch (normalizedLangName) {
+    case "dart":
+      return (await import("@local/lang-dart")).dartSupport();
+    case "kotlin":
+      return (await import("@local/lang-kotlin")).kotlinSupport();
+    case "shell":
+      return (await import("@local/lang-shell")).shellSupport();
+    case "swift":
+      return (await import("@local/lang-swift")).swiftSupport();
+    case "ruby":
+      return (await import("@local/lang-ruby")).rubySupport();
+    case "jsx":
+      return (await import("@local/lang-jsx")).jsx();
+    case "typescript":
+      return (await import("@local/lang-typescript")).typescript();
+    case "tsx":
+      return (await import("@local/lang-tsx")).tsx();
+    default:
+      break;
+  }
+
   const desc = LanguageDescription.matchLanguageName(languages, langName);
   if (desc) {
     const lang = await desc.load();

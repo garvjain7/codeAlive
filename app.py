@@ -25,6 +25,7 @@ from api.workspace_router import router as workspace_router
 from ot_collab.ws_router import router as collab_ws_router
 from api.collab_router import router as collab_http_router
 from api.auth_router import router as auth_router
+from api.file_router import build_file_view_response, router as file_router
 from ot_collab.grace_sweeper import start_grace_sweeper
 # from services.mailer import send_waitlist_email
 from services.mail_service_v2 import send_waitlist_email
@@ -87,6 +88,7 @@ app.include_router(workspace_router)
 app.include_router(collab_http_router)
 app.include_router(collab_ws_router)
 app.include_router(auth_router)
+app.include_router(file_router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -170,7 +172,7 @@ async def homepage(request: Request):
 
 @app.get("/editor", response_class=HTMLResponse)
 async def editor(request: Request):
-    """Fresh editor — no snippet loaded."""
+    """Fresh editor — no snippet loaded or preloaded from an imported text/code file."""
     user_id = getattr(request.state, "user_id", None)
     user_email = None
     if user_id:
@@ -178,15 +180,57 @@ async def editor(request: Request):
             user = await get_user_by_id(conn, uuid.UUID(user_id))
             if user:
                 user_email = user["email"]
+
+    auto_open_upload = request.query_params.get("upload", "").lower() in {"1", "true", "yes", "on"}
+    code_id = request.query_params.get("code_id", "").strip()
+
+    encoded = ""
+    language = "text"
+    highlights = ""
+    is_protected = False
+
+    if code_id:
+        async with db_conn.pool.acquire() as conn:
+            snippet = await get_snippet_by_code_id(conn, code_id)
+            if snippet:
+                encoded = snippet.get("encoded_content", "") or ""
+                language = snippet.get("language", "text") or "text"
+                highlights = snippet.get("highlights", "") or ""
+                is_protected = bool(snippet.get("is_password_protected"))
+
     return templates.TemplateResponse(
         "index.html",
         {
             "request":    request,
-            "encoded":    "",
-            "language":   "text",
-            "highlights": "",
+            "encoded":    encoded,
+            "language":   language,
+            "highlights": highlights,
             "user_id":    user_id,
-            "user_email": user_email
+            "user_email": user_email,
+            "auto_open_upload": auto_open_upload,
+            "is_protected": is_protected,
+            "code_id": code_id,
+        },
+    )
+
+
+@app.get("/import", response_class=HTMLResponse)
+async def import_page(request: Request):
+    """Dedicated import page for file uploads and file-based sharing."""
+    user_id = getattr(request.state, "user_id", None)
+    user_email = None
+    if user_id:
+        async with db_conn.pool.acquire() as conn:
+            user = await get_user_by_id(conn, uuid.UUID(user_id))
+            if user:
+                user_email = user["email"]
+
+    return templates.TemplateResponse(
+        "import.html",
+        {
+            "request": request,
+            "user_id": user_id,
+            "user_email": user_email,
         },
     )
 
@@ -429,6 +473,11 @@ async def save(
             )
         
         return {"url": f"/s/{code_id}"}
+
+
+@app.get("/f/{file_id}", response_class=HTMLResponse)
+async def public_file_view(request: Request, file_id: str):
+    return await build_file_view_response(request, file_id)
 
 
 @app.get("/s/{code_id}", response_class=HTMLResponse)

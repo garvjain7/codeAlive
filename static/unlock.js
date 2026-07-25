@@ -1,7 +1,4 @@
-// ── SNIPPET UNLOCK LOGIC ───────────────────────────────────────────────────────
-
-import { loadEncodedSnippet } from "./codec.js";
-import { showError } from "./ui.js";
+import { translateError } from "./error-service.js";
 
 export function initUnlock() {
   const overlay = document.getElementById("password-overlay");
@@ -34,14 +31,13 @@ export function initUnlock() {
       const data = await response.json();
 
       if (!response.ok) {
-        unlockError.textContent = data.detail || "Invalid password.";
+        unlockError.textContent = translateError(data.detail || { status: response.status }, "Invalid password.");
         unlockBtn.disabled = false;
         unlockBtn.textContent = "Unlock Snippet";
         return;
       }
 
       // 2. Success! Load snippet and hide overlay
-      // The snippet content is now returned directly in the verify response
       const { encoded_content, language, highlights } = data.snippet;
       await loadEncodedSnippet(encoded_content, language, highlights);
       
@@ -50,7 +46,7 @@ export function initUnlock() {
 
     } catch (err) {
       console.error(err);
-      unlockError.textContent = "Network error. Try again.";
+      unlockError.textContent = translateError(err, "Network error. Try again.");
       unlockBtn.disabled = false;
       unlockBtn.textContent = "Unlock Snippet";
     }

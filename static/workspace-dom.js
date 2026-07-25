@@ -8,9 +8,9 @@ export const tabButtons      = document.querySelectorAll('.tab-btn');
 export const navItems        = document.querySelectorAll('.tree-item[data-view]');
 
 export const statTotal       = document.getElementById('stat-total');
-export const statActive      = document.getElementById('stat-active');
+export const statFiles       = document.getElementById('stat-files');
 export const statLanguages   = document.getElementById('stat-languages');
-export const statAccessed    = document.getElementById('stat-accessed');
+export const statDownloads   = document.getElementById('stat-downloads');
 
 export const themeToggle     = document.getElementById('themeToggle');
 export const avatarInitial   = document.getElementById('avatarInitial');

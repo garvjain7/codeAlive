@@ -159,23 +159,31 @@ body.auth-body {
     bottom: 28px;
     left: 50%;
     transform: translateX(-50%) translateY(20px);
-    background: #1c1014;
-    border: 1px solid #3a1520;
-    border-radius: 8px;
-    padding: 11px 20px;
-    color: #f07575;
-    font-size: 12.5px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(28, 16, 20, 0.96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 10px;
+    padding: 10px 16px;
+    color: #fca5a5;
+    font-size: 13px;
+    font-weight: 500;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.25s, transform 0.25s;
-    z-index: 200;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+    z-index: 9999;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 18px rgba(239, 68, 68, 0.15);
+    max-width: 90vw;
 }
 
 #error-bar.visible {
     opacity: 1;
     pointer-events: all;
     transform: translateX(-50%) translateY(0);
+    animation: error-pop 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* ── TOAST ──────────────────────────────────────────── */

@@ -4,6 +4,7 @@ import {
   downloadBtn,
   editorHintEmpty,
   editorHintHighlight,
+  shareBtn,
 } from "./dom.js";
 
 import { hideShareBar, hideEditWarning, setEditWarningDismissed } from "./ui.js";
@@ -15,6 +16,7 @@ import { setReadOnly } from "./editor.js";
 export async function enterViewMode() {
   if (viewBadge) viewBadge.classList.add("show");
   if (downloadBtn) downloadBtn.classList.add("show");
+  if (shareBtn) shareBtn.style.display = "none";
   if (editorHintEmpty) editorHintEmpty.classList.add("hidden");
   if (editorHintHighlight) editorHintHighlight.classList.add("hidden");
   
@@ -38,6 +40,7 @@ export async function enterHomeMode() {
   hideShareBar();
   if (viewBadge) viewBadge.classList.remove("show");
   if (downloadBtn) downloadBtn.classList.remove("show");
+  if (shareBtn) shareBtn.style.display = "";
 
   hideEditWarning();
   setEditWarningDismissed(false);

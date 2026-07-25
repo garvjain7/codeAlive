@@ -1,0 +1,193 @@
+# Prompt: File import/preview page — navbar, share flow, and backend persistence
+
+> Written by Claude without full visibility into the actual codebase —
+> verify every assumption below against the real files before acting on
+> it. Several items are explicitly marked as unresolved — do not invent
+> answers for those, surface them back for a decision instead of guessing.
+
+## 1. Navbar — auth-aware, not static
+
+Current `import.html` navbar hardcodes buttons only for
+`preview_mode == 'share'` vs not — it does not vary by auth state at all
+outside that branch. Replace with this matrix (applies whether the page
+is plain `/import`, a local file preview, or a `/f/{file_id}` share view):
+
+| Logged in | Not logged in |
+|---|---|
+| Share, Download, Import New, Workspace, Open editor, Logout | Share, Download, Import New, Open editor, Login, Signup |
+
+**Workspace only appears for logged-in users.** This is a correction —
+do not show it to anonymous users under any circumstance.
+
+Share/Download/Import New only make sense once a file exists in some
+form (locally selected or already shared) — confirm with whoever's
+reviewing whether they should be hidden entirely or shown-but-disabled
+before a file is loaded on a bare `/import` page with nothing selected
+yet. This wasn't specified — don't assume either answer.
+
+## 2. Share modal — reuse the existing snippet share modal component
+
+Do not build a new modal. Reuse the exact markup/styling already used
+for snippet sharing (`shareModal`, `optionRandom`/`optionCustom`,
+`customCode`, `snippetPassword`, `expiryDays`, `snippetTitle` — see
+`modal.js`/`dom.js`/`actions.js`). The existing snippet flow already
+conditionally includes password/expiry/title fields only when logged in
+(`actions.js`: `if (snippetPassword) {...}`) — follow that same
+conditional pattern for the file variant rather than building a separate
+"logged-in modal" and "anonymous modal."
+
+**Do not create a new endpoint.** A working file-save endpoint already
+exists — it uploads to Cloudflare R2 and writes to the database
+correctly. The actual gap is frontend wiring: the reused share modal
+needs to call the correct existing endpoint with the correct fields,
+not a newly invented one. Before writing any request code:
+
+1. Search the codebase for the existing file-save route (check
+   `api/`, and anywhere referencing R2/Cloudflare upload logic) and
+   confirm its real path, method, and field names.
+2. Confirm it already accepts (or can accept) `custom_code`, `title`,
+   `password`, `expiry` the same way `/save` does for snippets — if any
+   of these aren't currently supported by the existing route, that's a
+   gap to flag back, not something to route around by inventing a
+   parallel endpoint.
+3. Only then wire the share modal's request to that confirmed real
+   endpoint.
+
+Expected request shape, assuming the existing endpoint follows the same
+pattern as `/save` (confirm against the real route, don't assume this is
+exact):
+
+```
+multipart/form-data:
+  file (binary — original_filename, file_type, file_size_bytes should be
+        derived server-side from this, not sent separately, unless the
+        existing route already does something different — check first)
+  custom_code   (optional — becomes file_id)
+  title         (REQUIRED if logged in — user_file_uploads.title is
+                 NOT NULL at the DB level, not just app-enforced like
+                 snippets. Not applicable for anonymous uploads —
+                 anonymous_file_uploads has no title column at all.)
+  password      (optional, logged-in only)
+  expiry        (int — maps to user_file_uploads.expires_at, must
+                 satisfy chk_file_expiry_future; confirm default/clamp
+                 against the real route rather than assuming it matches
+                 /save's 30-day default and 1–90 clamp)
+response: whatever shape the existing endpoint already returns —
+          confirm this before assuming it's {"url": "/f/{file_id}"}
+```
+
+Auth: read `request.state.user_id` from the existing cookie middleware
+(`core/auth_middleware.py`) — this should already be how the existing
+endpoint handles auth; don't introduce a second mechanism.
+
+**Unresolved — confirm before building:** does anonymous file sharing
+exist as a requirement at all, the same way anonymous snippet sharing
+does? Don't assume yes just because snippets support it.
+
+## 3. Backend: tables already exist and are presumably wired up — confirm, don't rebuild
+
+The R2 upload + database write path is already working per confirmation
+above. This section's job is to confirm the tables actually match what's
+below, not to create new backend files — do not create
+`api/file_router.py`, `core/r2_client.py`, `services/file_service.py`,
+or `db/file_uploads.py` if equivalent working files already exist under
+different names. Locate the real files first.
+
+Schema (confirmed real, not a guess mirroring snippets):
+
+**`anonymous_file_uploads`**
+```
+id                 UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+file_id            TEXT UNIQUE NOT NULL
+original_filename  TEXT NOT NULL
+file_type          TEXT NOT NULL
+file_size_bytes    INTEGER NOT NULL
+created_at         TIMESTAMP DEFAULT now()
+```
+No title, no expiry, no password — matches anonymous_snippets exactly.
+
+**`user_file_uploads`**
+```
+id                     UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+file_id                TEXT UNIQUE NOT NULL
+owner_id               UUID REFERENCES users(user_id) ON DELETE CASCADE
+title                  TEXT NOT NULL          -- NOT NULL at DB level (see §2)
+original_filename      TEXT NOT NULL
+file_type              TEXT NOT NULL
+file_size_bytes        INTEGER NOT NULL
+is_password_protected  BOOLEAN DEFAULT false
+password_hash          TEXT
+expires_at             TIMESTAMP NOT NULL
+download_count         INTEGER DEFAULT 0
+created_at             TIMESTAMP DEFAULT now()
+
+CHECK (expires_at > created_at)
+CHECK ((is_password_protected = false AND password_hash IS NULL)
+    OR (is_password_protected = true  AND password_hash IS NOT NULL))
+```
+`download_count` exists only here, not on the anonymous table.
+
+**`file_access_control`**
+```
+file_id            UUID REFERENCES user_file_uploads(id) ON DELETE CASCADE
+user_id            UUID REFERENCES users(user_id) ON DELETE CASCADE
+failed_attempts    INTEGER DEFAULT 0
+last_failed_at     TIMESTAMP
+locked_until       TIMESTAMP
+first_success_at   TIMESTAMP
+PRIMARY KEY (file_id, user_id)
+```
+`file_id` here references `user_file_uploads(id)` — the UUID primary
+key, not the TEXT `file_id` slug, and not `anonymous_file_uploads` at
+all. Anonymous files have no access-control row and can't be locked,
+matching `snippet_access_control`'s pattern for `user_snippets` only.
+
+**Actual task for this section:** find the existing route/service/db
+files that already read and write these three tables, confirm they
+match the schema above, and confirm whether `file_access_control`'s
+lockout logic (3-strikes, 5-minute lock) is already implemented there or
+still missing — do not assume either way.
+
+## 4. Post-login redirect — return to where the user was, not the homepage
+
+The codebase already has a `next` query-param pattern
+(`signup.html`/`login.html`: `/signup?next={{ request.query_params.get('next', '') }}`).
+Extend that same pattern to `/import` and `/f/{file_id}` — after login,
+redirect to wherever `next` points, not to the homepage. This is
+extending an existing convention, not introducing a new one.
+
+**This works cleanly for `/f/{file_id}`** — the server re-fetches
+everything on return, nothing is lost.
+
+**This does NOT work cleanly for a locally-selected, not-yet-shared
+file.** A raw `File` object from the file input lives only in browser
+memory. A full-page redirect to `/login` and back destroys it — the
+user's file selection will be gone when they land back on the import
+page, even with `next` correctly wired up. `sessionStorage` cannot hold
+a binary `File` object directly, so this is not a trivial fix.
+
+**Unresolved — needs a decision, do not silently pick one:**
+- Option A: warn the user in the modal ("log in before selecting a file
+  if you plan to share it as a registered user") and accept the
+  limitation.
+- Option B: find another way to preserve the file across the redirect
+  (e.g. holding it in IndexedDB instead of sessionStorage, or some other
+  mechanism) — bigger scope, needs explicit buy-in before building.
+
+Do not implement either without confirmation — flag this back instead
+of assuming.
+
+## 5. Signup → login redirect
+
+Confirmed as expected/normal behavior — signup redirects to login as it
+already does. Just make sure the `next` param survives that hop the same
+way it already survives the login→signup hop, so the original
+destination isn't lost partway through the signup detour.
+
+## Explicitly out of scope for this pass
+
+- Building a new share modal from scratch (must reuse the existing one)
+- Inventing a different DB schema than the snippet-mirroring structure
+  specified above
+- Deciding the unresolved items in sections 1, 2, 3, and 4 without
+  surfacing them for a decision first

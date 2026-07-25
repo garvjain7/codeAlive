@@ -4,6 +4,13 @@ from datetime import datetime, timedelta
 import bcrypt
 import uuid
 from ot_collab.db import rooms as collab_db
+from db.file_uploads import (
+    get_user_file_uploads,
+    delete_user_file_upload,
+    update_user_file_password,
+    update_user_file_expiry,
+)
+from services.file_service import get_r2_client
 
 router = APIRouter(prefix="/api/workspace", tags=["workspace"])
 
@@ -55,12 +62,18 @@ async def get_workspace_stats(request: Request):
             SELECT COUNT(*) FROM snippet_access_control 
             WHERE user_id = $1 AND first_success_at IS NOT NULL
         """, uid)
+        total_files = await conn.fetchval("SELECT COUNT(*) FROM user_file_uploads WHERE owner_id = $1", uid)
+        total_downloads = await conn.fetchval(
+            "SELECT COALESCE(SUM(download_count), 0) FROM user_file_uploads WHERE owner_id = $1", uid
+        )
         
         return {
             "total_snippets": total,
             "active_snippets": active,
             "unique_languages": langs,
-            "accessed_count": accessed
+            "accessed_count": accessed,
+            "total_files": total_files,
+            "total_downloads": total_downloads,
         }
 
 @router.delete("/snippets/{code_id}")
@@ -170,3 +183,99 @@ async def get_active_workshops(request: Request):
             
         return {"workshops": workshops}
 
+
+# ── FILE MANAGEMENT ENDPOINTS ────────────────────────────────────────────────
+
+@router.get("/files")
+async def get_workspace_files(request: Request):
+    """Return all files uploaded by the logged-in user."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+
+    async with get_conn() as conn:
+        files = await get_user_file_uploads(conn, user_id)
+        return {"files": files}
+
+
+@router.delete("/files/{file_id}")
+async def delete_workspace_file(file_id: str, request: Request):
+    """Delete a user-owned file from R2 and the database."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+
+    async with get_conn() as conn:
+        deleted = await delete_user_file_upload(conn, file_id, user_id)
+        if not deleted:
+            raise HTTPException(404, "File not found or unauthorized")
+
+    # Remove from R2 storage (best-effort; don't fail if already gone)
+    try:
+        client, bucket_name = get_r2_client()
+        client.delete_object(Bucket=bucket_name, Key=file_id)
+    except Exception:
+        pass  # Object may already be missing; DB deletion already succeeded
+
+    return {"ok": True}
+
+
+@router.patch("/files/{file_id}/password")
+async def update_file_password(file_id: str, request: Request, payload: dict = Body(...)):
+    """Set or update password protection on a user-owned file."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+
+    password = payload.get("password")
+    if not password:
+        raise HTTPException(400, "Password is required")
+
+    salt = bcrypt.gensalt()
+    pwd_hash = bcrypt.hashpw(password.encode(), salt).decode()
+
+    async with get_conn() as conn:
+        updated = await update_user_file_password(conn, file_id, user_id, pwd_hash)
+        if not updated:
+            raise HTTPException(404, "File not found or unauthorized")
+
+    return {"ok": True}
+
+
+@router.patch("/files/{file_id}/expiry")
+async def update_file_expiry(file_id: str, request: Request, payload: dict = Body(...)):
+    """Extend the expiry of a user-owned file (capped at 90 days from creation)."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+
+    days = payload.get("days")
+    if not days or not isinstance(days, int) or days < 1:
+        raise HTTPException(400, "Extension days (min 1) required")
+
+    async with get_conn() as conn:
+        row = await conn.fetchrow(
+            "SELECT created_at FROM user_file_uploads WHERE file_id = $1 AND owner_id = $2",
+            file_id,
+            uuid.UUID(user_id),
+        )
+        if not row:
+            raise HTTPException(404, "File not found or unauthorized")
+
+        created_at = row["created_at"]
+        max_possible_expiry = created_at + timedelta(days=90)
+        requested_expiry = datetime.now() + timedelta(days=days)
+        final_expiry = min(max_possible_expiry, requested_expiry)
+
+        if final_expiry <= datetime.now():
+            raise HTTPException(400, "File has reached its maximum 90-day lifespan and cannot be extended further.")
+
+        updated = await update_user_file_expiry(conn, file_id, user_id, final_expiry)
+        if not updated:
+            raise HTTPException(404, "File not found or unauthorized")
+
+    return {
+        "ok": True,
+        "expires_at": final_expiry.isoformat(),
+        "capped": final_expiry == max_possible_expiry,
+    }

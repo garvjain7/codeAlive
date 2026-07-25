@@ -80,6 +80,10 @@
                             <span class="tree-icon">🔓</span>
                             <span class="tree-label">Accessed Snippets</span>
                         </div>
+                        <div class="tree-item" data-view="files" id="nav-files">
+                            <span class="tree-icon">📁</span>
+                            <span class="tree-label">My Files</span>
+                        </div>
                     </div>
                 </div>
             </nav>
@@ -95,25 +99,26 @@
                 <div class="stats-grid" id="statsGrid">
                     <div class="stat-card">
                         <span class="stat-value" id="stat-total">--</span>
-                        <span class="stat-label">Total Snippets</span>
+                        <span class="stat-label">Code Snippets</span>
                     </div>
                     <div class="stat-card">
-                        <span class="stat-value" id="stat-active">--</span>
-                        <span class="stat-label">Active Snippets</span>
+                        <span class="stat-value" id="stat-files">--</span>
+                        <span class="stat-label">Shared Files</span>
                     </div>
                     <div class="stat-card">
                         <span class="stat-value" id="stat-languages">--</span>
                         <span class="stat-label">Languages Used</span>
                     </div>
                     <div class="stat-card">
-                        <span class="stat-value" id="stat-accessed">--</span>
-                        <span class="stat-label">Protected Accessed</span>
+                        <span class="stat-value" id="stat-downloads">--</span>
+                        <span class="stat-label">Total Downloads</span>
                     </div>
                 </div>
 
                 <!-- SECTION 2: QUICK ACTIONS -->
                 <div class="quick-actions">
                     <a href="/editor" class="action-btn primary">+ New Snippet</a>
+                    <a href="/import" class="action-btn">+ Import File</a>
                     <a href="/profile" class="action-btn">Manage Profile</a>
                 </div>
 
@@ -121,6 +126,7 @@
                 <div class="tab-row">
                     <button class="tab-btn active" data-tab="created" id="tab-created">My Snippets</button>
                     <button class="tab-btn" data-tab="accessed" id="tab-accessed">Accessed Snippets</button>
+                    <button class="tab-btn" data-tab="files" id="tab-files">My Files</button>
                 </div>
 
                 <!-- SECTION 4: SNIPPET LIST -->

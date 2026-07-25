@@ -120,32 +120,36 @@ createShare.addEventListener("click", async () => {
     formData.append("expiry", expiryDays.value || "30");
   }
 
-  setCreateBtnLoading("creating...");
+  const performSave = async () => {
+    setCreateBtnLoading("creating...");
 
-  try {
-    const response = await fetch("/save", { method: "POST", body: formData });
-    const data     = await response.json();
+    try {
+      const response = await fetch("/save", { method: "POST", body: formData });
+      const data     = await response.json();
 
-    if (!response.ok) {
+      if (!response.ok) {
+        setCreateBtnNormal();
+        showError(data.detail || { status: response.status }, { retryFn: performSave });
+        return;
+      }
+
+      const fullUrl = window.location.origin + data.url;
+
+      history.pushState({}, "", data.url);
+      showShareBar(fullUrl);
+      enterViewMode();
+      closeModal();
+      hideHighlightPopup();
+
+      hideEditWarning();
+      setEditWarningDismissed(false);
+    } catch (err) {
       setCreateBtnNormal();
-      showError(data.detail || "Failed to save.");
-      return;
+      showError(err, { retryFn: performSave });
     }
+  };
 
-    const fullUrl = window.location.origin + data.url;
-
-    history.pushState({}, "", data.url);
-    showShareBar(fullUrl);
-    enterViewMode();
-    closeModal();
-    hideHighlightPopup();
-
-    hideEditWarning();
-    setEditWarningDismissed(false);
-  } catch {
-    setCreateBtnNormal();
-    showError("Network error. Please try again.");
-  }
+  await performSave();
 });
 
 // ── 18. COPY ─────────────────────────────────────────────────────────────────
