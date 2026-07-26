@@ -202,6 +202,8 @@ body.auth-body {
     transform: translateY(8px);
     transition: opacity 0.2s, transform 0.2s;
     z-index: 300;
+    width: fit-content;
+    max-width: calc(100vw - 56px);
 }
 
 #toast.show {

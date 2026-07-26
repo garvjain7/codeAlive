@@ -1,8 +1,11 @@
+import logging
 from fastapi import APIRouter, HTTPException, Request
 from db.connection import get_conn
 import uuid
 from ot_collab.db import rooms as collab_db
+from core.config import ENABLE_ROOMS
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/profile", tags=["profile"])
 
 @router.get("/summary")
@@ -23,7 +26,14 @@ async def get_profile_summary(request: Request):
         total = await conn.fetchval("SELECT COUNT(*) FROM user_snippets WHERE owner_id = $1", user_id)
         protected = await conn.fetchval("SELECT COUNT(*) FROM user_snippets WHERE owner_id = $1 AND is_password_protected = TRUE", user_id)
         langs_count = await conn.fetchval("SELECT COUNT(DISTINCT language) FROM user_snippets WHERE owner_id = $1", user_id)
-        room_count = await conn.fetchval("SELECT COUNT(*) FROM rooms WHERE host_id = $1", user_id)
+        
+        room_count = 0
+        if ENABLE_ROOMS:
+            try:
+                room_count = await conn.fetchval("SELECT COUNT(*) FROM rooms WHERE host_id = $1", user_id)
+            except Exception as e:
+                logger.warning(f"Rooms query failed (optional module): {e}")
+                room_count = 0
         
         # 3. Language Distribution
         lang_rows = await conn.fetch("""
@@ -75,7 +85,14 @@ async def get_collab_history(request: Request):
     user_id_raw = getattr(request.state, "user_id", None)
     if not user_id_raw:
         raise HTTPException(401, "Login required")
+
+    if not ENABLE_ROOMS:
+        return {"history": []}
         
     async with get_conn() as conn:
-        history = await collab_db.get_user_room_history(conn, user_id_raw)
+        try:
+            history = await collab_db.get_user_room_history(conn, user_id_raw)
+        except Exception as e:
+            logger.warning(f"Collab history query failed (optional module): {e}")
+            history = []
         return {"history": history}

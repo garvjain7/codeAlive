@@ -471,34 +471,133 @@ async function renderPreviewForSharedFile({ url, contentType, filename, sizeByte
   }
 }
 
-// ── Audio player helper ───────────────────────────────────────────────────────
+// ── Time formatter ─────────────────────────────────────────────────────────────
+function formatAudioTime(seconds) {
+  if (isNaN(seconds) || seconds < 0) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+}
+
+// ── Custom Audio player helper ──────────────────────────────────────────────────
 function renderAudioPlayer(url, filename) {
+  clearPreviewBody();
   previewBody.classList.add("audio-preview-body");
-  const wrapper = document.createElement("div");
-  wrapper.className = "audio-player-wrapper";
 
-  const nameEl = document.createElement("div");
-  nameEl.className = "audio-player-title";
-  nameEl.textContent = filename || "Audio";
+  const playerContainer = document.createElement("div");
+  playerContainer.className = "custom-audio-player";
 
-  const iconEl = document.createElement("div");
-  iconEl.className = "audio-player-icon";
-  iconEl.innerHTML = `<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" stroke-opacity="0.2"/>
-    <path d="M18 16v7.5M22 14v11.5M26 18v7.5M30 14v11.5M34 16v7.5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-    <path d="M18 31v1M22 29v3M26 31v1M30 29v3M34 31v1" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
-  </svg>`;
+  playerContainer.innerHTML = `
+    <audio class="custom-audio-engine" src="${url}" preload="metadata"></audio>
+    <div class="cap-top-info">
+      <div class="cap-icon-title">
+        <span class="cap-music-icon">🎵</span>
+        <span class="cap-title"></span>
+      </div>
+      <div class="cap-time-display">
+        <span class="cap-curr-time">0:00</span> / <span class="cap-dur-time">0:00</span>
+      </div>
+    </div>
+    <div class="cap-controls-row">
+      <button class="cap-play-btn" type="button" aria-label="Play">
+        <svg class="icon-play" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg class="icon-pause hidden" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <div class="cap-seek-wrap">
+        <input type="range" class="cap-seek-slider" min="0" max="100" value="0" step="0.1">
+        <div class="cap-seek-progress" style="width: 0%"></div>
+      </div>
+      <button class="cap-mute-btn" type="button" aria-label="Mute">
+        <svg class="icon-vol" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <svg class="icon-mute hidden" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </button>
+    </div>
+  `;
 
-  const audio = document.createElement("audio");
-  audio.src = url;
-  audio.controls = true;
-  audio.className = "audio-player-el";
-  audio.preload = "metadata";
+  previewBody.appendChild(playerContainer);
 
-  wrapper.appendChild(iconEl);
-  wrapper.appendChild(nameEl);
-  wrapper.appendChild(audio);
-  previewBody.appendChild(wrapper);
+  const titleEl = playerContainer.querySelector(".cap-title");
+  titleEl.textContent = filename || "Audio track";
+
+  const audio = playerContainer.querySelector(".custom-audio-engine");
+  const playBtn = playerContainer.querySelector(".cap-play-btn");
+  const iconPlay = playerContainer.querySelector(".icon-play");
+  const iconPause = playerContainer.querySelector(".icon-pause");
+  const seekSlider = playerContainer.querySelector(".cap-seek-slider");
+  const seekProgress = playerContainer.querySelector(".cap-seek-progress");
+  const currTimeEl = playerContainer.querySelector(".cap-curr-time");
+  const durTimeEl = playerContainer.querySelector(".cap-dur-time");
+  const muteBtn = playerContainer.querySelector(".cap-mute-btn");
+  const iconVol = playerContainer.querySelector(".icon-vol");
+  const iconMute = playerContainer.querySelector(".icon-mute");
+
+  let isSeeking = false;
+
+  playBtn.addEventListener("click", () => {
+    if (audio.paused) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  });
+
+  audio.addEventListener("play", () => {
+    iconPlay.classList.add("hidden");
+    iconPause.classList.remove("hidden");
+  });
+
+  audio.addEventListener("pause", () => {
+    iconPlay.classList.remove("hidden");
+    iconPause.classList.add("hidden");
+  });
+
+  audio.addEventListener("ended", () => {
+    iconPlay.classList.remove("hidden");
+    iconPause.classList.add("hidden");
+    seekSlider.value = 0;
+    seekProgress.style.width = "0%";
+    currTimeEl.textContent = "0:00";
+  });
+
+  audio.addEventListener("loadedmetadata", () => {
+    durTimeEl.textContent = formatAudioTime(audio.duration);
+  });
+
+  audio.addEventListener("timeupdate", () => {
+    if (!isSeeking && audio.duration) {
+      const pct = (audio.currentTime / audio.duration) * 100;
+      seekSlider.value = pct;
+      seekProgress.style.width = `${pct}%`;
+      currTimeEl.textContent = formatAudioTime(audio.currentTime);
+    }
+  });
+
+  seekSlider.addEventListener("input", () => {
+    isSeeking = true;
+    const pct = seekSlider.value;
+    seekProgress.style.width = `${pct}%`;
+    if (audio.duration) {
+      currTimeEl.textContent = formatAudioTime((pct / 100) * audio.duration);
+    }
+  });
+
+  seekSlider.addEventListener("change", () => {
+    if (audio.duration) {
+      audio.currentTime = (seekSlider.value / 100) * audio.duration;
+    }
+    isSeeking = false;
+  });
+
+  muteBtn.addEventListener("click", () => {
+    audio.muted = !audio.muted;
+    if (audio.muted) {
+      iconVol.classList.add("hidden");
+      iconMute.classList.remove("hidden");
+    } else {
+      iconVol.classList.remove("hidden");
+      iconMute.classList.add("hidden");
+    }
+  });
 }
 
 // ── Modal open / close ────────────────────────────────────────────────────────
