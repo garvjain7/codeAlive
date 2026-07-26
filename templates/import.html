@@ -3,13 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeAlive — Import File</title>
+    <meta name="description" content="Import files into CodeAlive. Live in-browser preview, instant file sharing, password protection, and download options." />
+    <meta name="google-site-verification" content="ea83WnXtdNRmXKKzvfTx9xfJeVKtxGbNgeumq_eiRSk" />
+    <meta name="google-site-verification" content="NLcoGDSaxNXHirIutPY2zIK0qpIR3pDcBgH8tvo_MeQ" />
+    <meta name="keywords" content="CodeAlive file import, share files, document preview, online file viewer" />
+
+    <meta property="og:title" content="{% if filename %}CodeAlive — {{ filename }}{% else %}CodeAlive — File Import &amp; Preview{% endif %}" />
+    <meta property="og:description" content="Import files into CodeAlive with live in-browser preview, password protection, and instant sharing." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://codealive.onrender.com{{ request.url.path }}" />
+
+    <title>{% if filename %}CodeAlive — {{ filename }}{% else %}CodeAlive — File Import &amp; Preview{% endif %}</title>
+
     <link rel="stylesheet" href="/static/css/theme.css?v=1.3" />
     <link rel="stylesheet" href="/static/css/style.css?v=1.3" />
     <link rel="stylesheet" href="/static/css/home.css?v=1.3" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700&display=swap" rel="stylesheet" />
+
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SQXHZCDKRS"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-SQXHZCDKRS');
+    </script>
   </head>
   <body class="import-layout">
     <header id="topbar">
@@ -133,10 +153,10 @@
 
           <div class="import-info-row">
             <div class="supported-formats">
-              Supported formats: .txt, .md, .json, .csv, .xml, .yaml, .py, .js, .ts, .css, .html, .pdf, .docx, .xlsx, .xls, .png, .jpg, .svg, .mp4
+              Supported: .txt, .md, .json, .csv, .xml, .yaml, .py, .js, .ts, .css, .html, .pdf, .docx, .xlsx, .xls, .png, .jpg, .svg, .mp4, .mp3
             </div>
             <div class="max-size">
-              Maximum size: 5MB
+              Docs &amp; images: 500 KB &nbsp;·&nbsp; Video: 5 MB &nbsp;·&nbsp; Audio: 10 MB
             </div>
           </div>
 

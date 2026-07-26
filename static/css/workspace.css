@@ -284,6 +284,7 @@ body {
   font-size: 13px; font-weight: 600;
   opacity: 0; pointer-events: none; transform: translateY(10px);
   transition: all 0.3s; z-index: 1000;
+  width: fit-content; max-width: calc(100vw - 64px);
 }
 #toast.show { opacity: 1; transform: translateY(0); }
 

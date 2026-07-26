@@ -251,12 +251,12 @@ async def view_file(request: Request, file_id: str):
     async with get_conn() as conn:
         record = await get_file_record(conn, file_id)
         if record and record.get("share_type") == "user":
+            user_id = getattr(request.state, "user_id", None)
+            if not user_id:
+                return RedirectResponse(url=f"/login?next=/f/{file_id}", status_code=303)
             if record.get("expires_at") and record["expires_at"] < datetime.utcnow():
                 raise HTTPException(404, "File has expired")
-            user_id = getattr(request.state, "user_id", None)
-            if record.get("is_password_protected") and not user_id:
-                raise HTTPException(403, "Password protected")
-            if record.get("is_password_protected") and user_id:
+            if record.get("is_password_protected"):
                 access = await get_access_control(conn, record.get("record_id"), user_id)
                 if access and access.get("locked_until") and access["locked_until"] > datetime.utcnow():
                     raise HTTPException(403, "Too many failed attempts")

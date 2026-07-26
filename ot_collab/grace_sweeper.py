@@ -48,6 +48,7 @@ from . import room_state
 from .db import rooms as db_rooms
 from .db import operations as db_ops
 from .connection_manager import manager
+from core.config import ENABLE_ROOMS
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +58,18 @@ async def start_grace_sweeper() -> None:
     Entry point. Run as a long-lived asyncio task.
     Performs an immediate sweep on startup, then loops.
     """
+    if not ENABLE_ROOMS:
+        logger.info("[GraceSweeper] disabled (ENABLE_ROOMS=False)")
+        return
+
     logger.info("[GraceSweeper] started")
 
     # Immediate sweep handles rooms that were in grace period before a restart
-    await _sweep() #type: ignore
+    try:
+        await _sweep_grace_periods()
+        await _sweep_hard_expiry()
+    except Exception as e:
+        logger.warning(f"[GraceSweeper] initial sweep warning: {e}")
 
     while True:
         try:
