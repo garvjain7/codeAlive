@@ -26,14 +26,15 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  overflow: hidden; /* Main panel will scroll */
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 /* ── TOP NAV ─────────────────────────────────────────────────── */
 #top-nav {
   position: fixed; top: 0; left: 0; right: 0; height: var(--nav-h);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 24px; z-index: 100;
+  padding: 0 clamp(12px, 2vw, 24px); z-index: 100;
   background: var(--nav-bg); backdrop-filter: blur(18px);
   border-bottom: 0.5px solid var(--border);
 }
@@ -45,7 +46,10 @@ body {
 .logo span { color: var(--text3); }
 
 .search-wrap {
-  position: relative; width: 400px;
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  flex: 1 1 auto;
 }
 .search-icon {
   position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
@@ -134,7 +138,7 @@ body {
 .main-panel {
   flex: 1; overflow-y: auto; padding: 40px;
 }
-.panel-container { max-width: 1000px; margin: 0 auto; }
+.panel-container { max-width: 1000px; width: min(100%, 1000px); margin: 0 auto; }
 
 .section-header h1 {
   font-family: var(--serif); font-size: 28px; font-weight: 700;
@@ -297,7 +301,7 @@ body {
   .workspace-layout { flex-direction: column; height: auto; overflow: visible; }
   .sidebar { 
     position: fixed; left: -100%; top: var(--nav-h); bottom: 0;
-    width: 280px; border-right: 0.5px solid var(--border); 
+    width: min(280px, 90vw); border-right: 0.5px solid var(--border); 
     background: var(--bg2); z-index: 200; transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .sidebar.open { left: 0; box-shadow: 20px 0 50px rgba(0,0,0,0.5); }
@@ -308,6 +312,10 @@ body {
   .main-panel { padding: 20px 16px; }
   .search-wrap { display: none; } /* Hide in nav, will add to sidebar or main */
   .stats-grid { grid-template-columns: 1fr; }
+  #top-nav { flex-wrap: wrap; gap: 12px; }
+  .nav-left, .nav-center, .nav-right { flex: 1 1 100%; }
+  .nav-center { order: 3; width: 100%; display: flex; justify-content: center; }
+  .nav-right { justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
 }
 
 @media (max-width: 500px) {

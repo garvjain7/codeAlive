@@ -48,7 +48,7 @@
 html,
 body {
     height: 100%;
-    overflow: hidden;
+    min-height: 100%;
     background: var(--bg);
     color: var(--text);
     font-family: "JetBrains Mono", monospace;
@@ -544,7 +544,7 @@ body {
 
 .import-preview-xlsx table {
     width: 100%;
-    min-width: 600px;
+    min-width: min(600px, 100%);
     border-collapse: collapse;
     font-size: 0.85rem;
     color: #f1f5f9;
@@ -1145,7 +1145,8 @@ body {
         opacity 0.25s,
         transform 0.25s;
     z-index: 200;
-    min-width: 360px;
+    min-width: 0;
+    width: min(94vw, auto);
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
 }
 
@@ -1153,6 +1154,7 @@ body {
     opacity: 1;
     pointer-events: all;
     transform: translateX(-50%) translateY(0);
+    max-width: calc(100vw - 32px);
 }
 
 #share-bar label {
@@ -1424,7 +1426,8 @@ body {
     background: var(--modal-bg);
     border: 1px solid #252830;
     border-radius: 16px;
-    width: 520px;
+    width: min(92vw, 520px);
+    max-width: 520px;
     overflow: hidden;
     box-shadow:
         0 40px 100px rgba(0, 0, 0, 0.8),
@@ -2344,9 +2347,10 @@ body {
 }
 
 @media (max-width: 650px) {
-    #topbar { padding: 0 12px; }
+    #topbar { padding: 0 12px; flex-wrap: wrap; gap: 10px; }
     .logo { font-size: 15px; }
-    .bar-right { gap: 6px; }
+    .bar-center { display: none; }
+    .bar-right { gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
     .btn { padding: 6px 12px; font-size: 11px; }
     #shareBtn { padding: 6px 10px; }
     

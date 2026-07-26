@@ -257,9 +257,7 @@ a { color: inherit; }
 
 .import-preview-xlsx table {
   width: 100%;
-  min-width: 600px;
-  border-collapse: collapse;
-  font-size: 0.85rem;
+    min-width: 100%;
   color: #f1f5f9;
 }
 

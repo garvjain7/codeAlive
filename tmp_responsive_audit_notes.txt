@@ -1,0 +1,8 @@
+responsive audit patched files:
+- static/css/home.css
+- static/css/workspace.css
+- static/css/style.css
+- static/css/auth.css
+- static/css/file-viewer.css
+
+pending verification: breakpoints 320-1920

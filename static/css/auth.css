@@ -13,29 +13,29 @@ body.auth-body {
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 /* Background glows */
 .auth-glow-green {
     position: absolute;
-    width: 600px;
-    height: 600px;
+    width: clamp(280px, 40vw, 600px);
+    height: clamp(280px, 40vw, 600px);
     border-radius: 50%;
     background: radial-gradient(circle, rgba(63,224,160,0.06) 0%, transparent 65%);
-    top: -200px;
-    right: -100px;
+    top: clamp(-220px, -15vw, -200px);
+    right: clamp(-120px, -10vw, -100px);
     pointer-events: none;
 }
 
 .auth-glow-blue {
     position: absolute;
-    width: 500px;
-    height: 500px;
+    width: clamp(240px, 35vw, 500px);
+    height: clamp(240px, 35vw, 500px);
     border-radius: 50%;
     background: radial-gradient(circle, rgba(91,163,255,0.05) 0%, transparent 65%);
-    bottom: -150px;
-    left: -100px;
+    bottom: clamp(-160px, -12vw, -150px);
+    left: clamp(-110px, -9vw, -100px);
     pointer-events: none;
 }
 
