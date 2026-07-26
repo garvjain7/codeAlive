@@ -106,7 +106,7 @@ app.mount(
 _HIGHLIGHTS_RE = re.compile(r"^L\d+(-L\d+)?(,L\d+(-L\d+)?)*$", re.IGNORECASE)
 
 # Reserved path names that must never be treated as snippet code_ids
-_RESERVED = frozenset({"editor", "waitlist", "static", "s", "new", "robots.txt", "sitemap.xml", "login", "signup", "reset-password"})
+_RESERVED = frozenset({"editor", "waitlist", "static", "s", "f", "import", "workspace", "profile", "api", "new", "robots.txt", "sitemap.xml", "login", "signup", "reset-password"})
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -290,13 +290,13 @@ async def reset_password_page(request: Request):
 @app.get("/robots.txt")
 async def serve_robots_txt():
     """Serve robots.txt from root."""
-    return FileResponse(os.path.join(BASE_DIR, "robots.txt"))
+    return FileResponse(os.path.join(BASE_DIR, "robots.txt"), media_type="text/plain")
 
 
 @app.get("/sitemap.xml")
 async def serve_sitemap_xml():
     """Serve sitemap.xml from root."""
-    return FileResponse(os.path.join(BASE_DIR, "sitemap.xml"))
+    return FileResponse(os.path.join(BASE_DIR, "sitemap.xml"), media_type="application/xml")
 
 
 # @app.post("/waitlist")

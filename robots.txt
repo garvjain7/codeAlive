@@ -1,6 +1,10 @@
 User-agent: *
 Disallow: /workspace
 Disallow: /profile
+Disallow: /api/
 Allow: /
+Allow: /import
+Allow: /editor
+Allow: /waitlist
 
 Sitemap: https://codealive.onrender.com/sitemap.xml
