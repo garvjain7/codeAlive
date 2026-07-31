@@ -106,6 +106,7 @@ export async function createEditor(initialCode = "", initialLang = "text", isRea
       search({top: true}),
       highlightSelectionMatches(),
       languageConf.of(langExtension),
+      EditorView.lineWrapping,
       readOnlyConf.of(EditorState.readOnly.of(isReadOnly)),
       highlightsField,
       imagePlugin,
