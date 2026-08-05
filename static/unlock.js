@@ -1,4 +1,5 @@
 import { translateError } from "./error-service.js";
+import { loadEncodedSnippet } from "./codec.js";
 
 export function initUnlock() {
   const overlay = document.getElementById("password-overlay");
