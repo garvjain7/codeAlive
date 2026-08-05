@@ -49,9 +49,9 @@
           <a href="/profile" class="nav-avatar-sm" id="importAvatar">{{ user_email[0].upper() if user_email else 'U' }}</a>
         {% else %}
           <a href="/login?next={{ request.url.path }}" class="btn btn-ghost" style="text-decoration: none;">Login</a>
-          <a href="/signup?next={{ request.url.path }}" class="btn btn-ghost" style="text-decoration: none;">Signup</a>
+          <!-- <a href="/signup?next={{ request.url.path }}" class="btn btn-ghost" style="text-decoration: none;">Signup</a> -->
         {% endif %}
-        <a href="/editor" class="btn btn-accent" style="text-decoration: none;">Open editor</a>
+        <!-- <a href="/editor" class="btn btn-accent" style="text-decoration: none;">Open editor</a> -->
       </div>
     </header>
 
