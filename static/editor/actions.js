@@ -8,19 +8,19 @@ import {
   shareUrl,
   customCode,
   searchBtn,
-} from "./dom.js";
+} from "../core/dom.js";
 
-import { MAX_LINES } from "./constants.js";
+import { MAX_LINES } from "../core/constants.js";
 import { detection, triggerDetection, meetsThreshold } from "./detection.js";
 import { highlights, serializeHighlights, hideHighlightPopup } from "./highlights.js";
-import { showError, showToast, showShareBar, hideEditWarning, setEditWarningDismissed, updateLangBadge } from "./ui.js";
+import { showError, showToast, showShareBar, hideEditWarning, setEditWarningDismissed, updateLangBadge } from "../core/ui.js";
 import {
   openModal,
   closeModal,
   selectedOption,
   setCreateBtnLoading,
   setCreateBtnNormal,
-} from "./modal.js";
+} from "../modal/modal.js";
 import { enterViewMode, enterHomeMode } from "./modes.js";
 import { triggerSearch } from "./editor.js";
 
@@ -33,7 +33,7 @@ searchBtn.addEventListener("click", () => {
 // ── SHARE BUTTON ─────────────────────────────────────────────────────────────
 
 shareBtn.addEventListener("click", async () => {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const code = view.state.doc.toString().trim();
@@ -59,7 +59,7 @@ shareBtn.addEventListener("click", async () => {
 // ── 17. CREATE LINK BUTTON (GATE) ────────────────────────────────────────────
 
 createShare.addEventListener("click", async () => {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const code = view.state.doc.toString().trim();
@@ -102,7 +102,7 @@ createShare.addEventListener("click", async () => {
   formData.append("custom_code", custom.trim() || "");
 
   // Add advanced options if they exist (logged-in users)
-  const { snippetPassword, expiryDays, snippetTitle } = await import("./dom.js");
+  const { snippetPassword, expiryDays, snippetTitle } = await import("../core/dom.js");
   
   if (snippetTitle) {
     const titleVal = snippetTitle.value.trim();
@@ -159,7 +159,7 @@ copyBtn.addEventListener("click", () => {
 });
 
 copyCodeBtn.addEventListener("click", async () => {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const code = view.state.doc.toString();
@@ -176,7 +176,7 @@ newBtn.addEventListener("click", () => {
 // ── 20. DOWNLOAD ─────────────────────────────────────────────────────────────
 
 downloadBtn.addEventListener("click", async () => {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const code = view.state.doc.toString();
@@ -210,7 +210,7 @@ downloadBtn.addEventListener("click", async () => {
 const themeToggleBtn = document.getElementById('themeToggleBtn');
 if (themeToggleBtn) {
   themeToggleBtn.addEventListener('click', async () => {
-    const { toggleTheme } = await import('./theme.js');
+    const { toggleTheme } = await import('../core/theme.js');
     toggleTheme();
   });
 }

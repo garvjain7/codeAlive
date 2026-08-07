@@ -4,8 +4,8 @@
  */
 
 import * as dom from './workspace-dom.js';
-import { toggleTheme } from './theme.js';
-import { translateError } from './error-service.js';
+import { toggleTheme } from '../../core/theme.js';
+import { translateError } from '../../core/error-service.js';
 
 // ── STATE ──────────────────────────────────────────────────
 let currentView = 'created';
@@ -513,3 +513,4 @@ function showToast(msg) {
   dom.toastWorkspace.classList.add('show');
   setTimeout(() => dom.toastWorkspace.classList.remove('show'), 2500);
 }
+

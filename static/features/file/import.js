@@ -1,4 +1,4 @@
-import { showError } from "./ui.js";
+import { showError } from "../../core/ui.js";
 
 const dataEl = document.getElementById("import-data");
 const textEl = document.getElementById("import-preview-text");
@@ -146,6 +146,12 @@ function getFileIconSvg(kind) {
 let pdfDocState = null;
 let currentPdfPage = 1;
 let currentPdfRenderTask = null;
+let currentTextLayerRenderTask = null;
+
+// PDF link annotations are only ever allowed to become real hrefs if they
+// match one of these schemes — external web links, email, or phone. Anything
+// else (form actions, JS actions, etc.) is intentionally ignored.
+const ALLOWED_LINK_SCHEMES = /^(https?:|mailto:|tel:)/i;
 
 let xlsxWorkbookState = null;
 let currentXlsxSheetIndex = 0;
@@ -271,11 +277,80 @@ function setupPreviewHeader(filename, sizeBytes, contentType, downloadUrl = null
 
 // ── Render helpers ────────────────────────────────────────────────────────────
 
+// Builds the clickable overlay for a PDF page's Link annotations:
+// - External http/https, mailto:, tel: links become real <a href> elements.
+// - Internal GoTo/named-destination links resolve to a page number and
+//   jump via renderPdfPage, using the same pagination state as the footer.
+async function renderPdfLinkAnnotations(page, viewport, layerDiv) {
+  const annotations = await page.getAnnotations({ intent: "display" });
+  const pdfjsLibRef = window.pdfjsLib;
+
+  for (const ann of annotations) {
+    if (ann.subtype !== "Link") continue;
+
+    const rect = pdfjsLibRef.Util.normalizeRect(ann.rect);
+    const [vx1, vy1, vx2, vy2] = viewport.convertToViewportRectangle(rect);
+    const left = Math.min(vx1, vx2);
+    const top = Math.min(vy1, vy2);
+    const width = Math.abs(vx2 - vx1);
+    const height = Math.abs(vy2 - vy1);
+    if (width <= 0 || height <= 0) continue;
+
+    const a = document.createElement("a");
+    a.className = "pdf-link-annotation";
+    a.style.left = `${left}px`;
+    a.style.top = `${top}px`;
+    a.style.width = `${width}px`;
+    a.style.height = `${height}px`;
+
+    const candidateUrl = ann.url || ann.unsafeUrl;
+
+    if (candidateUrl && ALLOWED_LINK_SCHEMES.test(candidateUrl)) {
+      a.href = candidateUrl;
+      if (/^https?:/i.test(candidateUrl)) {
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+      }
+    } else if (ann.dest) {
+      a.href = "#";
+      a.addEventListener("click", async (event) => {
+        event.preventDefault();
+        const targetPage = await resolvePdfDestPage(ann.dest);
+        if (targetPage && targetPage !== currentPdfPage) {
+          currentPdfPage = targetPage;
+          renderPdfPage(currentPdfPage);
+        }
+      });
+    } else {
+      continue; // form fields / unsupported action types — intentionally skipped
+    }
+
+    layerDiv.appendChild(a);
+  }
+}
+
+// Resolves a PDF destination (named string or explicit [ref, ...] array)
+// to a 1-indexed page number within the currently loaded document.
+async function resolvePdfDestPage(dest) {
+  if (!pdfDocState) return null;
+  let explicitDest = dest;
+  if (typeof dest === "string") {
+    explicitDest = await pdfDocState.getDestination(dest);
+  }
+  if (!Array.isArray(explicitDest) || !explicitDest.length) return null;
+  const ref = explicitDest[0];
+  const pageIndex = await pdfDocState.getPageIndex(ref);
+  return pageIndex + 1;
+}
+
 async function renderPdfPage(pageNumber) {
   if (!pdfDocState || !previewBody) return;
 
   if (currentPdfRenderTask) {
     try { currentPdfRenderTask.cancel(); } catch (_) {}
+  }
+  if (currentTextLayerRenderTask) {
+    try { currentTextLayerRenderTask.cancel(); } catch (_) {}
   }
 
   const page = await pdfDocState.getPage(pageNumber);
@@ -295,14 +370,53 @@ async function renderPdfPage(pageNumber) {
     wrapper.innerHTML = "";
   }
 
+  // Page container: canvas + text layer + annotation layer are stacked at
+  // identical pixel dimensions here so the overlays line up exactly with
+  // whatever was drawn on the canvas.
+  const pageContainer = document.createElement("div");
+  pageContainer.className = "pdf-page-container";
+  pageContainer.style.width = `${viewport.width}px`;
+  pageContainer.style.height = `${viewport.height}px`;
+  wrapper.appendChild(pageContainer);
+
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
-  wrapper.appendChild(canvas);
+  canvas.className = "pdf-page-canvas";
+  pageContainer.appendChild(canvas);
 
   currentPdfRenderTask = page.render({ canvasContext: ctx, viewport });
   await currentPdfRenderTask.promise;
+
+  // Text layer — real, invisible, selectable text positioned over the canvas.
+  const textLayerDiv = document.createElement("div");
+  textLayerDiv.className = "pdf-text-layer";
+  pageContainer.appendChild(textLayerDiv);
+
+  try {
+    const textContent = await page.getTextContent();
+    currentTextLayerRenderTask = window.pdfjsLib.renderTextLayer({
+      textContentSource: textContent,
+      container: textLayerDiv,
+      viewport,
+    });
+    await currentTextLayerRenderTask.promise;
+  } catch (_) {
+    // Non-fatal — canvas still renders fine without selectable text.
+  }
+
+  // Annotation layer — clickable external/mailto/tel links + internal
+  // "go to page" navigation, built directly from the page's annotations.
+  const annotationLayerDiv = document.createElement("div");
+  annotationLayerDiv.className = "pdf-annotation-layer";
+  pageContainer.appendChild(annotationLayerDiv);
+
+  try {
+    await renderPdfLinkAnnotations(page, viewport, annotationLayerDiv);
+  } catch (_) {
+    // Non-fatal — canvas/text still work without links.
+  }
 
   updateFooterNavigation(pageNumber, pdfDocState.numPages, "Page");
 }
@@ -1059,3 +1173,4 @@ function showToast(message) {
   toast.classList.add("show");
   setTimeout(() => toast.classList.remove("show"), 2500);
 }
+

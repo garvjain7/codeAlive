@@ -22,7 +22,7 @@ import {
   updateLangBadge,
   showError,
   showToast,
-} from "./ui.js";
+} from "../core/ui.js";
 import { 
   loadEncodedSnippet 
 } from "./codec.js";
@@ -32,13 +32,13 @@ import {
 } from "./image-handler.js";
 import { initUnlock } from "./unlock.js";
 import { initEditorFileImport, inferLanguageFromFileName } from "./editor-file-import.js";
-import { initBinaryUpload, openBinaryUploadModal } from "./file-upload.js";
+import { initBinaryUpload, openBinaryUploadModal } from "../features/file/file-upload.js";
 
-import "./ui.js";
-import "./modal.js";
+import "../core/ui.js";
+import "../modal/modal.js";
 import "./actions.js";
-import "./theme.js";
-import { editorContainer, getView, fileImportBtn } from "./dom.js";
+import "../core/theme.js";
+import { editorContainer, getView, fileImportBtn } from "../core/dom.js";
 
 // ── Wire detection → ui + editor ─────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 import { detection } from "./detection.js";
 import { highlights, parseHighlights, renderHighlights } from "./highlights.js";
 import { setLanguage } from "./editor.js";
-import { updateLangBadge, showError, showShareBar } from "./ui.js";
+import { updateLangBadge, showError, showShareBar } from "../core/ui.js";
 import { enterViewMode } from "./modes.js";
 
 // ── DECODE + DECOMPRESS ───────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ export async function decodeAndDecompress(encoded) {
 // ── LOAD ENCODED SNIPPET ─────────────────────────────────────────────────────
 
 export async function loadEncodedSnippet(encoded, language = "text", highlightsStr = "") {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   try {

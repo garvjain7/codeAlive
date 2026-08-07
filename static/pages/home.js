@@ -101,7 +101,7 @@
   const themeToggle = document.getElementById('themeToggle');
   if (themeToggle) {
     themeToggle.addEventListener('click', async () => {
-      const { toggleTheme } = await import('./theme.js');
+      const { toggleTheme } = await import('../core/theme.js');
       toggleTheme();
     });
   }

@@ -4,8 +4,8 @@
 ═══════════════════════════════════════════════════════════════ */
 
 import * as dom from './profile-dom.js';
-import './theme.js';
-import { translateError } from './error-service.js';
+import '../../core/theme.js';
+import { translateError } from '../../core/error-service.js';
 
 // ── INITIALIZATION ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -106,3 +106,4 @@ function showToast(msg) {
   dom.toastProfile.classList.add('show');
   setTimeout(() => dom.toastProfile.classList.remove('show'), 3000);
 }
+

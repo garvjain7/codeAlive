@@ -1,4 +1,4 @@
-import { translateError } from "./error-service.js";
+import { translateError } from "../core/error-service.js";
 import { loadEncodedSnippet } from "./codec.js";
 
 export function initUnlock() {
@@ -57,3 +57,4 @@ export function initUnlock() {
     if (e.key === "Enter") unlockBtn.click();
   });
 }
+

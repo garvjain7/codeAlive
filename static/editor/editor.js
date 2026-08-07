@@ -33,7 +33,7 @@ import {
 import { languages } from "@codemirror/language-data";
 import { oneDark } from "@codemirror/theme-one-dark";
 
-import { editorContainer, setView, lineInfo, charInfo, editorHintEmpty, editorHintHighlight } from "./dom.js";
+import { editorContainer, setView, lineInfo, charInfo, editorHintEmpty, editorHintHighlight } from "../core/dom.js";
 import { handleEditorUpdate, handleImmediateDetection } from "./detection.js";
 import { highlightsField } from "./highlights.js";
 import { imagePlugin } from "./image-handler.js";
@@ -150,7 +150,7 @@ export async function createEditor(initialCode = "", initialLang = "text", isRea
               tr.isUserEvent("drop")
             );
             if (isUserChange) {
-              import("./ui.js").then(({ showEditWarning, setHasEditingStarted }) => {
+              import("../core/ui.js").then(({ showEditWarning, setHasEditingStarted }) => {
                 if (setHasEditingStarted(true)) {
                   showEditWarning();
                 }
@@ -182,7 +182,7 @@ function updateStats(doc) {
 const readOnlyConf = new Compartment();
 
 export async function setLanguage(langName) {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const extension = await getLanguageExtension(langName);
@@ -192,7 +192,7 @@ export async function setLanguage(langName) {
 }
 
 export async function setReadOnly(isReadOnly) {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
   
   view.dispatch({
@@ -208,8 +208,9 @@ export function updateLineNumbers() {}
 export function syncHighlightScroll() {}
 
 export async function triggerSearch() {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
   openSearchPanel(view);
   view.focus();
 }
+

@@ -6,8 +6,8 @@ import {
   MatchDecorator,
 } from "@codemirror/view";
 
-import { editorContainer } from "./dom.js";
-import { showError } from "./ui.js";
+import { editorContainer } from "../core/dom.js";
+import { showError } from "../core/ui.js";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -34,7 +34,7 @@ class ImageWidget extends WidgetType {
     btn.title = `Click to view image (${this.imageId})`;
     btn.onclick = async () => {
       if (window.location.pathname === "/editor") return;
-      const { showImageModal } = await import("./ui.js");
+      const { showImageModal } = await import("../core/ui.js");
       showImageModal(`/image/${this.imageId}`);
     };
     return btn;
@@ -156,7 +156,7 @@ async function handleImageFile(file) {
 }
 
 async function insertPlaceholder(imageId) {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const placeholder = `[image:${imageId}]`;

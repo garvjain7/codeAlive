@@ -5,9 +5,9 @@ import {
   editorHintEmpty,
   editorHintHighlight,
   shareBtn,
-} from "./dom.js";
+} from "../core/dom.js";
 
-import { hideShareBar, hideEditWarning, setEditWarningDismissed } from "./ui.js";
+import { hideShareBar, hideEditWarning, setEditWarningDismissed } from "../core/ui.js";
 import { highlights, renderHighlights, hideHighlightPopup } from "./highlights.js";
 import { detection, clearDetectionDebounce } from "./detection.js";
 
@@ -27,7 +27,7 @@ export async function enterViewMode() {
 export async function enterHomeMode() {
   history.pushState({}, "", "/editor");
 
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (view) {
     // Allow editing in home mode
     setReadOnly(false);

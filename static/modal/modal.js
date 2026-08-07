@@ -23,9 +23,9 @@ import {
   highlightCloseBtn,
   highlightGotIt,
   howItWorksBtn,
-} from "./dom.js";
+} from "../core/dom.js";
 
-import { hideHighlightPopup } from "./highlights.js";
+import { hideHighlightPopup } from "../editor/highlights.js";
 
 // ── Option card selection ─────────────────────────────────────────────────────
 

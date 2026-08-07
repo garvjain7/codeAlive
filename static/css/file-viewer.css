@@ -207,7 +207,7 @@ a { color: inherit; }
   text-align: center;
 }
 
-/* PDF Canvas Container */
+/* PDF Container */
 .import-preview-pdf {
   display: flex;
   flex-direction: column;
@@ -216,12 +216,63 @@ a { color: inherit; }
   width: 100%;
 }
 
-.import-preview-pdf canvas {
-  max-width: 100%;
-  height: auto !important;
+/* PDF page stack: canvas (visual) + text layer (selection) + annotation
+   layer (links) are all absolutely positioned at identical pixel
+   dimensions inside this container, so the overlays always line up
+   exactly with what's drawn on the canvas. Deliberately NOT using
+   max-width/height:auto shrink-to-fit here — that would scale the
+   canvas visually while leaving the overlay layers at their raw pixel
+   size, breaking click/selection alignment. If a rendered page is ever
+   wider than the available space, .import-preview-body's overflow:auto
+   lets it scroll horizontally instead.
+*/
+.pdf-page-container {
+  position: relative;
+}
+
+.pdf-page-canvas {
+  display: block;
   border-radius: 6px;
   box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
   background: #ffffff;
+}
+
+.pdf-text-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  line-height: 1;
+}
+
+.pdf-text-layer span,
+.pdf-text-layer br {
+  position: absolute;
+  white-space: pre;
+  color: transparent;
+  cursor: text;
+  transform-origin: 0% 0%;
+}
+
+.pdf-text-layer ::selection {
+  background: rgba(63, 224, 160, 0.35);
+}
+
+.pdf-annotation-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.pdf-annotation-layer .pdf-link-annotation {
+  position: absolute;
+  display: block;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.pdf-annotation-layer .pdf-link-annotation:hover {
+  background: rgba(63, 224, 160, 0.08);
+  outline: 1px solid rgba(63, 224, 160, 0.35);
 }
 
 /* DOCX Container */

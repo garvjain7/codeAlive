@@ -13,9 +13,9 @@ import {
   popupHighlightBtn,
   popupRemoveBtn,
   editorContainer,
-} from "./dom.js";
+} from "../core/dom.js";
 
-import { COLOR_POOL } from "./constants.js";
+import { COLOR_POOL } from "../core/constants.js";
 
 // ── Effects & Fields ──────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ export function serializeHighlights(hls) {
 // ── Render ────────────────────────────────────────────────────────────────────
 
 export async function renderHighlights() {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const decorations = [];
@@ -112,7 +112,7 @@ export function hideHighlightPopup() {
 }
 
 export async function showHighlightPopup(startLine, endLine, targetHighlight) {
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const rect = editorContainer.getBoundingClientRect();
@@ -168,7 +168,7 @@ export function updateHighlight(id, startLine, endLine) {
 export async function handleTextSelection() {
   if (window.location.pathname !== "/editor") return;
 
-  const { view } = await import("./dom.js");
+  const { view } = await import("../core/dom.js");
   if (!view) return;
 
   const { from, to } = view.state.selection.main;
@@ -212,7 +212,7 @@ export function initHighlights() {
       addHighlight(pendingSelection.startLine, pendingSelection.endLine);
     }
     hideHighlightPopup();
-    const { view } = await import("./dom.js");
+    const { view } = await import("../core/dom.js");
     if (view) view.focus();
   });
 
@@ -220,7 +220,7 @@ export function initHighlights() {
     if (!pendingSelection || !pendingSelection.targetHighlight) return;
     removeHighlight(pendingSelection.targetHighlight.id);
     hideHighlightPopup();
-    const { view } = await import("./dom.js");
+    const { view } = await import("../core/dom.js");
     if (view) view.focus();
   });
 

@@ -1,5 +1,5 @@
-import { binaryUploadBtn } from "./dom.js";
-import { showError, showToast } from "./ui.js";
+import { binaryUploadBtn } from "../../core/dom.js";
+import { showError, showToast } from "../../core/ui.js";
 
 let openUploadModal = null;
 
@@ -158,3 +158,4 @@ export function initBinaryUpload() {
     }
   });
 }
+

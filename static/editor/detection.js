@@ -6,7 +6,7 @@
 //  The Promise/resolver pattern lets the Create-Link button await the
 //  in-flight request without polling, without timers, without races.
 
-import { DEBOUNCE_MS, COOLDOWN_MS, MIN_LINES, MIN_CHARS } from "./constants.js";
+import { DEBOUNCE_MS, COOLDOWN_MS, MIN_LINES, MIN_CHARS } from "../core/constants.js";
 
 // ── Callback registry ─────────────────────────────────────────────────────────
 

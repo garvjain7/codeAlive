@@ -4,7 +4,7 @@
    Aligned with project architecture (modular).
 ═══════════════════════════════════════════════════════════════ */
 
-import { showError, showToast } from "./ui.js";
+import { showError, showToast } from "../../core/ui.js";
 
 document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('loginForm');
@@ -194,4 +194,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
 
