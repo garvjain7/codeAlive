@@ -638,6 +638,7 @@ h1 em { font-style: italic; color: var(--green); }
 /* ── FILE SHARING ────────────────────────────────────────────── */
 .section-files {
   background: var(--bg);
+  overflow: hidden;
   position: relative;
 }
 .files-glow {
