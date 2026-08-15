@@ -2,8 +2,14 @@ from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from core.redis_client import async_redis
 
+from core.config import REMOTE_API_MODE
+
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        if REMOTE_API_MODE:
+            request.state.user_id = None
+            return await call_next(request)
+
         user_id = None
         session_id = request.cookies.get("session_id")
         # OPTIMIZATION: Skip session lookup for static assets to reduce TTFB on asset loads.

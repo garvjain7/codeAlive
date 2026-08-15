@@ -1,7 +1,6 @@
 .env
 __pycache__/
 venv/
-.env*
 db/__pycache__
 
 scripts/clear_session.py

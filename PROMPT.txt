@@ -1,79 +1,118 @@
-# Prompt: File viewer access rules + password lockout timing + toast width fix
+Review the current **Remote API Proxying Mode implementation plan** and revise it before implementing anything.
 
-> Written by Claude without full visibility into the actual codebase —
-> verify every assumption below against the real files before acting on
-> it.
+For now, focus **ONLY on these four points**. Do not expand the scope into other proxy concerns yet.
 
-## 1. Viewer must be logged in for files owned by a logged-in user
+### 1. Use an explicit remote-proxy mode
 
-Confirmed scope: **every** file in `user_file_uploads` (i.e. any file
-with a non-null `owner_id`) requires the viewer to also be authenticated
-— not just files that are also password-protected. This applies
-regardless of whether `is_password_protected` is true or false.
+Do **not** use the absence of `DB_URL` as the condition for enabling remote proxying.
 
-Anonymous uploads (`anonymous_file_uploads`) are unaffected — they stay
-publicly viewable with no login requirement, matching current behavior.
+The current proposal says:
 
-Implementation: on the `GET /f/{file_id}` route (or wherever that view
-is actually served — locate the real route first), after looking up
-which table the file_id belongs to:
-- If it resolves to `anonymous_file_uploads` → serve normally, no auth
-  check.
-- If it resolves to `user_file_uploads` → require
-  `request.state.user_id` to be present (same middleware pattern already
-  used elsewhere — `core/auth_middleware.py`). If absent, redirect to
-  `/login?next=/f/{file_id}` so the viewer lands back on the file after
-  logging in, using the same `next` param pattern already used for
-  signup/login elsewhere in the app. Do not require the viewer to be the
-  *owner* — any authenticated user, not just the uploader, satisfies
-  this check.
+> "Add a proxy handler for API endpoints when running without a local `DB_URL`."
 
-## 2. Password lockout: 3 attempts, 5-minute lock — intentionally different from snippets
+Change this design to use an explicit configuration flag, for example:
 
-The live snippet lockout (`db/access_control.py`,
-`increment_failed_attempt`) actually locks for **10 minutes** after 3
-failed attempts — the original planning doc said 5 minutes, but the real
-implemented code is 10. Files should use **5 minutes**, not 10. This is
-a deliberate difference from snippets, not a bug to "fix" back to match
-— do not copy the 10-minute value from `access_control.py` when writing
-the file equivalent.
+```env
+REMOTE_API_MODE=true
+LIVE_API_URL=https://codealive.onrender.com
+```
 
-Implementation: mirror `db/access_control.py`'s structure
-(`get_or_create_access`, `increment_failed_attempt`, `mark_success`) in
-whatever file already handles `file_access_control` reads/writes, but
-with the lock interval set to `INTERVAL '5 minutes'` instead of `'10
-minutes'`. Confirm the actual file service already has these functions
-partially built before adding — reuse rather than duplicate if a partial
-version exists.
+The behavior should be:
 
-Recall: `file_access_control.file_id` references `user_file_uploads(id)`
-only — anonymous files have no row in this table and can't be locked,
-so this logic only ever applies to logged-in-owned files (which, per
-§1, already require the viewer to be logged in before even reaching a
-password prompt).
+* `REMOTE_API_MODE=true` → local FastAPI serves the frontend but proxies backend/API operations to `LIVE_API_URL`.
+* `REMOTE_API_MODE=false` or unset → normal local backend behavior.
+* Missing `DB_URL` alone must **never automatically imply remote mode**.
 
-## 3. Toast/message box width — sizing to content, not a fixed width
+Also make sure that when remote mode is enabled, local database initialization is skipped so the temporary frontend developer can run the UI without having any database credentials or local backend environment secrets.
 
-Symptom: short message text, but the box renders far wider than the
-text needs, leaving a large empty gap after the text. This is the
-classic signature of the box's width coming from something other than
-its own content — most likely one of:
-- A fixed `width` (or `min-width`) left over from sizing against a
-  longer message that used to be the only one shown
-- The toast being a flex/grid child that's stretching to fill its
-  parent's available width (e.g. `align-self: stretch` inherited, or a
-  parent using `justify-content: stretch` instead of `flex-end`)
-- `width: 100%` somewhere in the chain instead of `width: fit-content` /
-  `width: max-content`
+### 2. Do not proxy arbitrary routes
 
-Fix: the toast box should size to its own content
-(`width: fit-content` or `width: max-content` on the box itself, with no
-competing fixed width elsewhere in its CSS chain), while its
-*positioning* (bottom-right of the viewport) stays exactly as-is — only
-the width calculation is the problem, not the placement.
+Do not implement a generic "proxy anything that isn't a frontend route" mechanism.
 
-Locate the actual toast component's CSS before patching — there may be
-more than one message type sharing this component ("Copied!", and
-whatever others are being shown), so confirm the fix applies at the
-shared component level rather than needing to be repeated per message
-type.
+Create an explicit allowlist of the backend routes that are supposed to be proxied.
+
+For example, depending on the actual CodeAlive routes:
+
+```text
+/api/*
+/save
+/waitlist
+```
+
+But **inspect the existing CodeAlive codebase first and determine the actual backend/API routes that need to work in remote mode**.
+
+Do not blindly proxy:
+
+```text
+/*
+```
+
+or every unknown/unmatched route.
+
+The goal is:
+
+```text
+Local FastAPI
+├── Frontend HTML/CSS/JS → serve locally
+├── Explicitly allowed API routes → proxy remotely
+└── Everything else → retain normal local routing behavior
+```
+
+### 3. Authentication and cookies — investigate before implementing
+
+Do not assume that simply forwarding:
+
+```text
+Cookie
+Authorization
+```
+
+will make authentication work correctly.
+
+First inspect the existing CodeAlive authentication implementation and determine:
+
+* Whether authentication uses cookies, JWTs, or both.
+* Where the authentication cookie is created.
+* Its `Domain`, `Path`, `Secure`, `SameSite`, and `HttpOnly` attributes.
+* How authenticated API requests currently identify the user.
+* Whether login is expected to happen through the deployed backend.
+
+Then determine exactly what happens in this architecture:
+
+```text
+Browser
+   ↓
+localhost:8000
+   ↓
+Local proxy
+   ↓
+https://codealive.onrender.com
+```
+
+Specifically verify whether the deployed backend's authentication cookie can correctly work through the local proxy.
+
+If cookie rewriting or another mechanism is required, include it in the revised plan.
+
+**Do not implement authentication handling based on assumptions. Inspect the existing code first and report what needs to happen.**
+
+---
+
+### Important scope restriction
+
+For this revision, **do not focus on other proxy concerns yet** such as:
+
+* file upload handling
+* redirect rewriting
+* generic response-header handling
+* advanced streaming behavior
+* other optimizations
+
+We will review those separately later.
+
+The immediate objective is to make the architecture correct regarding:
+
+**1. Explicit remote mode**
+**2. Explicit API route allowlist**
+**3. Existing authentication/cookie mechanism**
+
+First inspect the actual CodeAlive source code, then revise the implementation plan based on what is actually present rather than making assumptions.

@@ -32,6 +32,9 @@ from services.mail_service_v2 import send_waitlist_email
 from core.mongodb import waitlist_collection
 from dotenv import load_dotenv
 import db.connection as db_conn
+from core.config import REMOTE_API_MODE, LIVE_API_URL
+from core.remote_proxy import proxy_request
+import httpx
 
 load_dotenv()
 
@@ -56,6 +59,11 @@ async def neon_keepalive_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    if REMOTE_API_MODE:
+        print(f"[REMOTE PROXY MODE] Enabled. Proxying explicit API routes to {LIVE_API_URL}")
+        yield
+        return
+
     # Startup: Connect to PostgreSQL
     await db_conn.connect_db()
     
@@ -81,14 +89,54 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.add_middleware(AuthMiddleware)
-app.include_router(image_router)
-app.include_router(api_snippets_router)
-app.include_router(profile_router)
-app.include_router(workspace_router)
-app.include_router(collab_http_router)
-app.include_router(collab_ws_router)
-app.include_router(auth_router)
-app.include_router(file_router)
+
+if REMOTE_API_MODE:
+    # Explicit Allowlist Proxy Routes
+    @app.api_route("/auth/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+    async def proxy_auth(request: Request, path: str):
+        return await proxy_request(request)
+
+    @app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"])
+    async def proxy_api_all(request: Request, path: str):
+        return await proxy_request(request)
+
+    @app.post("/save")
+    async def proxy_save(request: Request):
+        return await proxy_request(request)
+
+    @app.post("/waitlist")
+    async def proxy_waitlist(request: Request):
+        return await proxy_request(request)
+
+    @app.post("/detect-language")
+    async def proxy_detect_language(request: Request):
+        return await proxy_request(request)
+
+    @app.post("/upload-image")
+    async def proxy_upload_image(request: Request):
+        return await proxy_request(request)
+
+    @app.get("/image/{image_id}")
+    async def proxy_get_image(request: Request, image_id: str):
+        return await proxy_request(request)
+
+    @app.api_route("/f/{file_id}", methods=["GET", "POST", "OPTIONS"])
+    async def proxy_file_view(request: Request, file_id: str):
+        return await proxy_request(request)
+
+    @app.api_route("/neon-logs", methods=["GET", "POST"])
+    async def proxy_neon_logs(request: Request):
+        return await proxy_request(request)
+else:
+    app.include_router(image_router)
+    app.include_router(api_snippets_router)
+    app.include_router(profile_router)
+    app.include_router(workspace_router)
+    app.include_router(collab_http_router)
+    app.include_router(collab_ws_router)
+    app.include_router(auth_router)
+    app.include_router(file_router)
+
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -485,6 +533,42 @@ async def view_snippet(request: Request, code_id: str):
     """
     Serve a shared snippet with access control and password protection.
     """
+    if REMOTE_API_MODE:
+        target_url = f"{LIVE_API_URL}/api/snippets/{code_id}"
+        forward_headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")}
+        async with httpx.AsyncClient(follow_redirects=False, timeout=10.0) as client:
+            res = await client.get(target_url, headers=forward_headers)
+        if res.status_code == 404:
+            raise HTTPException(404, "Snippet not found")
+        if res.status_code == 401:
+            return RedirectResponse(url=f"/login?next={request.url.path}")
+        if res.status_code == 410:
+            raise HTTPException(410, "Snippet has expired")
+        if res.status_code == 403 and res.headers.get("X-Requires-Password"):
+            return templates.TemplateResponse("index.html", {
+                "request": request,
+                "is_protected": True,
+                "code_id": code_id,
+                "encoded": "",
+                "language": "text",
+                "highlights": "",
+                "title": "Protected Snippet",
+                "user_id": None,
+                "user_email": None
+            })
+        if res.status_code == 200:
+            data = res.json().get("snippet", {})
+            return templates.TemplateResponse("index.html", {
+                "request": request,
+                "encoded": data.get("encoded_content", ""),
+                "language": data.get("language", "text"),
+                "highlights": data.get("highlights", ""),
+                "user_id": None,
+                "user_email": None,
+                "is_protected": False
+            })
+        raise HTTPException(res.status_code, "Failed to load snippet")
+
     user_id = getattr(request.state, "user_id", None)
     user_email = None
 

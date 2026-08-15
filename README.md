@@ -108,17 +108,23 @@ codeAlive/
 
 ---
 
-## Running Locally
+### Running Locally
 
-### Prerequisites
-- Python 3.10+
-- PostgreSQL 14+
-- Redis (on `localhost:6379` or via `REDIS_URL`)
-- Cloudflare R2 bucket (for file uploads)
-- MongoDB Atlas account (for waitlist/image metadata)
-- Gmail App Password (for email notifications)
+#### 1. Remote API Proxy Mode (Recommended for UI Development)
+If you are working on the frontend (HTML/CSS/JS) and do not want to set up local databases or configure secret API keys:
 
-### Setup
+```bash
+# Copy template environment file
+cp .env.example .env
+
+# Start server in remote proxy mode
+python app.py
+```
+
+Set `REMOTE_API_MODE=true` in `.env`. Local FastAPI will serve frontend templates and static files locally while transparently proxying backend/API calls to `https://codealive.onrender.com`.
+
+#### 2. Full Local Stack Mode
+If you are working on backend features locally:
 
 ```bash
 # Clone the repo
@@ -139,8 +145,10 @@ uvicorn app:app --reload
 
 | Variable | Description |
 |---|---|
+| `REMOTE_API_MODE` | Set to `true` for frontend UI development without local DB keys |
+| `LIVE_API_URL` | Deployed backend URL for proxying (defaults to `https://codealive.onrender.com`) |
 | `DB_URL` | PostgreSQL connection string (Neon or local) |
-| `REDIS_URL` | Redis connection string |
+| `REDIS_URL` | Redis connection string (Render instance or `redis://localhost:6379`). In `core/redis_client.py`, `REDIS_URL` is read from environment. For local Redis testing without an environment variable, `core/redis_client.py` falls back to `redis://localhost:6379`. |
 | `MONGO_URI` | MongoDB Atlas connection string |
 | `R2_ACCOUNT_ID` | Cloudflare R2 account ID |
 | `R2_ACCESS_KEY` | Cloudflare R2 access key |
