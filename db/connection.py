@@ -107,8 +107,9 @@ async def connect_db():
         raise ValueError("DB_URL is missing in environment variables.")
     pool = await asyncpg.create_pool(
         db_url,
-        min_size=20,
-        max_size=100,
+        min_size=2,           # small standing pool, avoids full suspend under light traffic
+        max_size=20,
+        max_inactive_connection_lifetime=300,  # 5 min — connections survive short gaps, close on real idle
         command_timeout=60
     )
     await ensure_schema()
