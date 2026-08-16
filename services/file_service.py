@@ -122,3 +122,13 @@ def load_uploaded_file(file_id: str, storage_dir: Optional[str] = None) -> Optio
         "content_type": response.get("ContentType", "application/octet-stream"),
         "size_bytes": response.get("ContentLength", len(content)),
     }
+
+
+def delete_uploaded_file(file_id: str) -> bool:
+    client, bucket_name = get_r2_client()
+    try:
+        client.delete_object(Bucket=bucket_name, Key=file_id)
+        return True
+    except Exception:
+        return False
+

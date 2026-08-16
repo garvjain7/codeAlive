@@ -26,6 +26,8 @@ from ot_collab.ws_router import router as collab_ws_router
 from api.collab_router import router as collab_http_router
 from api.auth_router import router as auth_router
 from api.file_router import build_file_view_response, router as file_router
+from api.bundle_router import router as bundle_router
+from ot_collab.bundle_ws_router import router as bundle_ws_router
 from ot_collab.grace_sweeper import start_grace_sweeper
 # from services.mailer import send_waitlist_email
 from services.mail_service_v2 import send_waitlist_email
@@ -89,6 +91,8 @@ app.include_router(collab_http_router)
 app.include_router(collab_ws_router)
 app.include_router(auth_router)
 app.include_router(file_router)
+app.include_router(bundle_router)
+app.include_router(bundle_ws_router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -106,7 +110,7 @@ app.mount(
 _HIGHLIGHTS_RE = re.compile(r"^L\d+(-L\d+)?(,L\d+(-L\d+)?)*$", re.IGNORECASE)
 
 # Reserved path names that must never be treated as snippet code_ids
-_RESERVED = frozenset({"editor", "waitlist", "static", "s", "f", "import", "workspace", "profile", "api", "new", "robots.txt", "sitemap.xml", "login", "signup", "reset-password"})
+_RESERVED = frozenset({"editor", "waitlist", "static", "s", "f", "b", "bundle", "import", "workspace", "profile", "api", "new", "robots.txt", "sitemap.xml", "login", "signup", "reset-password"})
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 

@@ -290,3 +290,40 @@ async def update_file_expiry(file_id: str, request: Request, payload: dict = Bod
         "expires_at": final_expiry.isoformat(),
         "capped": final_expiry == max_possible_expiry,
     }
+
+
+# ── BUNDLE MANAGEMENT ENDPOINTS ──────────────────────────────────────────────
+
+from db.bundles import get_user_bundles, delete_bundle_by_code
+from services.file_service import delete_uploaded_file
+
+@router.get("/bundles")
+async def get_workspace_bundles(request: Request):
+    """Return all bundles owned by the logged-in user."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+
+    async with get_conn() as conn:
+        bundles = await get_user_bundles(conn, uuid.UUID(user_id))
+        return {"bundles": bundles}
+
+
+@router.delete("/bundles/{code}")
+async def delete_workspace_bundle(code: str, request: Request):
+    """Delete a user-owned bundle and clean up R2 files if binary."""
+    user_id = getattr(request.state, "user_id", None)
+    if not user_id:
+        raise HTTPException(401, "Login required")
+
+    async with get_conn() as conn:
+        success, r2_keys = await delete_bundle_by_code(conn, code, user_id)
+        if not success:
+            raise HTTPException(404, "Bundle not found or unauthorized")
+
+    # Clean up R2 objects if binary bundle
+    for r2_key in r2_keys:
+        delete_uploaded_file(r2_key)
+
+    return {"ok": True}
+
